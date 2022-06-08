@@ -14,7 +14,7 @@
 
 Name:           gnome-control-center
 
-Version:        %{gnome_version}.vrr
+Version:        %{gnome_version}.vrr.1
 Release:        %autorelease
 Summary:        Utilities to configure the GNOME desktop
 
