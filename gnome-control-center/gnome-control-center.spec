@@ -23,6 +23,9 @@ Source0:        https://download.gnome.org/sources/%{name}/42/%{name}-%{tarball_
 # https://gitlab.gnome.org/GNOME/gnome-control-center/-/merge_requests/965
 Patch0:         distro-logo.patch
 
+# https://gitlab.gnome.org/doraskayo/gnome-control-center/-/commits/vrr-support-42
+Patch1:         vrr.patch
+
 BuildRequires:  desktop-file-utils
 BuildRequires:  docbook-style-xsl libxslt
 BuildRequires:  gcc
