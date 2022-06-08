@@ -14,8 +14,8 @@ Release:       1%{?dist}
 Summary:       Window and compositing manager based on Clutter
 
 License:       GPLv2+
-URL:           http://www.gnome.org
-Source0:       http://download.gnome.org/sources/%{name}/42/%{name}-%{tarball_version}.tar.xz
+URL:           https://www.gnome.org
+Source0:       https://download.gnome.org/sources/%{name}/42/%{name}-%{tarball_version}.tar.xz
 
 # Work-around for OpenJDK's compliance test
 Patch0:        0001-window-actor-Special-case-shaped-Java-windows.patch
