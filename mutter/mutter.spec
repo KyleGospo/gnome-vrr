@@ -173,8 +173,8 @@ desktop-file-validate %{buildroot}/%{_datadir}/applications/%{name}.desktop
 %{_datadir}/mutter-%{mutter_api_version}/tests
 
 %changelog
-* Tue Jun 07 2022 Kyle Gospodnetich <me@kylegospodneti.ch> - 42.2.vrr-1
-- Add Dor Askayo's VRR patches
+* Tue Jun 07 2022 Kyle Gospodnetich <me@kylegospodneti.ch> - 42.2.vrr.1-1
+- Add Dor Askayo's VRR MR
 
 * Sun May 29 2022 Florian Müllner <fmuellner@redhat.com> - 42.2-1
 - Update to 42.2
