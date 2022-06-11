@@ -2110,7 +2110,7 @@ index ae1fa4d90..82a251f5b 100644
 +                                                       &view_layout))
 +    return;
 +
-+  surface_actor = meta_window_actor_get_surface (window_actor);
++  surface_actor = meta_window_actor_get_scanout_candidate (window_actor);
 +  if (!surface_actor)
 +    return;
 +
