@@ -1,36 +1,278 @@
-From 6ed413b18a1e9975d8dbbe4c0612d9f32625813c Mon Sep 17 00:00:00 2001
+From 80fbd6945ee70f82cc9a18ddc76267fb3157fb6a Mon Sep 17 00:00:00 2001
 From: Dor Askayo <dor.askayo@gmail.com>
-Date: Sun, 5 Jun 2022 10:39:27 +0300
-Subject: [PATCH 01/22] wayland/surface: Remove leftover function declarations
+Date: Sun, 8 May 2022 00:09:44 +0300
+Subject: [PATCH 01/25] meson: Add -Werror=strict-aliasing
 
+This warning can point out design issues, so it should be useful to
+have it treated as error.
 ---
- src/wayland/meta-wayland-surface.h | 5 -----
- 1 file changed, 5 deletions(-)
+ meson.build | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/src/wayland/meta-wayland-surface.h b/src/wayland/meta-wayland-surface.h
-index 7986c21ea..4e52c274b 100644
---- a/src/wayland/meta-wayland-surface.h
-+++ b/src/wayland/meta-wayland-surface.h
-@@ -307,11 +307,6 @@ gboolean            meta_wayland_surface_should_cache_state (MetaWaylandSurface
- 
- MetaWindow *        meta_wayland_surface_get_toplevel_window (MetaWaylandSurface *surface);
- 
--void                meta_wayland_surface_queue_pending_frame_callbacks (MetaWaylandSurface *surface);
--
--void                meta_wayland_surface_queue_pending_state_frame_callbacks (MetaWaylandSurface      *surface,
--                                                                              MetaWaylandSurfaceState *pending);
--
- void                meta_wayland_surface_get_relative_coordinates (MetaWaylandSurface *surface,
-                                                                    float               abs_x,
-                                                                    float               abs_y,
+diff --git a/meson.build b/meson.build
+index 78f94b112..fa0cc23f0 100644
+--- a/meson.build
++++ b/meson.build
+@@ -427,6 +427,7 @@ if buildtype != 'plain'
+     '-Werror=pointer-to-int-cast',
+     '-Werror=empty-body',
+     '-Werror=write-strings',
++    '-Werror=strict-aliasing',
+     '-Wno-sign-compare',
+     '-Wno-cast-function-type',
+     '-Wno-unused-parameter',
 -- 
 2.36.1
 
 
-From 1574c19d5d29b0811579058b7adc2730332fd6a5 Mon Sep 17 00:00:00 2001
+From 5dc0eec32ce1ebadf6b3bec145190fed5e52de5c Mon Sep 17 00:00:00 2001
+From: Dor Askayo <dor.askayo@gmail.com>
+Date: Sat, 7 May 2022 23:59:06 +0300
+Subject: [PATCH 02/25] tests/screen-cast: Avoid undefined behavior with
+ GSource
+
+Follow the existing convention in Mutter and avoid downcasting
+custom GSource structs.
+---
+ src/tests/screen-cast-client.c | 42 ++++++++++++++++++++--------------
+ 1 file changed, 25 insertions(+), 17 deletions(-)
+
+diff --git a/src/tests/screen-cast-client.c b/src/tests/screen-cast-client.c
+index cdf0d7dcf..afd6f17b0 100644
+--- a/src/tests/screen-cast-client.c
++++ b/src/tests/screen-cast-client.c
+@@ -83,18 +83,18 @@ typedef struct _ScreenCast
+ 
+ typedef struct _PipeWireSource
+ {
+-  GSource base;
++  GSource source;
+ 
+   struct pw_loop *pipewire_loop;
+ } PipeWireSource;
+ 
+-static PipeWireSource *_pipewire_source;
++static GSource *_pipewire_source;
+ static struct pw_context *_pipewire_context;
+ static struct pw_core *_pipewire_core;
+ static struct spa_hook _pipewire_core_listener;
+ 
+ static gboolean
+-pipewire_loop_source_prepare (GSource *base,
++pipewire_loop_source_prepare (GSource *source,
+                               int     *timeout)
+ {
+   *timeout = -1;
+@@ -133,24 +133,26 @@ static GSourceFuncs pipewire_source_funcs =
+   pipewire_loop_source_finalize
+ };
+ 
+-static PipeWireSource *
+-create_pipewire_source (void)
++static GSource *
++create_pipewire_source (struct pw_loop *pipewire_loop)
+ {
++  GSource *source;
+   PipeWireSource *pipewire_source;
+ 
+-  pipewire_source =
+-    (PipeWireSource *) g_source_new (&pipewire_source_funcs,
+-                                     sizeof (PipeWireSource));
+-  pipewire_source->pipewire_loop = pw_loop_new (NULL);
+-  g_assert_nonnull (pipewire_source->pipewire_loop);
+-  g_source_add_unix_fd (&pipewire_source->base,
++  source = g_source_new (&pipewire_source_funcs,
++                         sizeof (PipeWireSource));
++
++  pipewire_source = (PipeWireSource *) source;
++  pipewire_source->pipewire_loop = pipewire_loop;
++
++  g_source_add_unix_fd (source,
+                         pw_loop_get_fd (pipewire_source->pipewire_loop),
+                         G_IO_IN | G_IO_ERR);
+ 
+   pw_loop_enter (pipewire_source->pipewire_loop);
+-  g_source_attach (&pipewire_source->base, NULL);
++  g_source_attach (source, NULL);
+ 
+-  return pipewire_source;
++  return source;
+ }
+ 
+ static void
+@@ -171,9 +173,15 @@ static const struct pw_core_events core_events = {
+ static void
+ init_pipewire (void)
+ {
++  struct pw_loop *pipewire_loop;
++
+   pw_init (NULL, NULL);
+-  _pipewire_source = create_pipewire_source ();
+-  _pipewire_context = pw_context_new (_pipewire_source->pipewire_loop,
++
++  pipewire_loop = pw_loop_new (NULL);
++  g_assert_nonnull (pipewire_loop);
++
++  _pipewire_source = create_pipewire_source (pipewire_loop);
++  _pipewire_context = pw_context_new (pipewire_loop,
+                                       NULL, 0);
+   g_assert_nonnull (_pipewire_context);
+   _pipewire_core = pw_context_connect (_pipewire_context, NULL, 0);
+@@ -192,8 +200,8 @@ release_pipewire (void)
+   g_clear_pointer (&_pipewire_context, pw_context_destroy);
+   if (_pipewire_source)
+     {
+-      g_source_destroy ((GSource *) _pipewire_source);
+-      g_source_unref ((GSource *) _pipewire_source);
++      g_source_destroy (_pipewire_source);
++      g_source_unref (_pipewire_source);
+       _pipewire_source = NULL;
+     }
+ }
+-- 
+2.36.1
+
+
+From 9c177490316ab3b6b522e108383130f976ea6b2d Mon Sep 17 00:00:00 2001
+From: Dor Askayo <dor.askayo@gmail.com>
+Date: Sat, 7 May 2022 23:48:22 +0300
+Subject: [PATCH 03/25] screen-cast/src: Avoid undefined behavior with GSource
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Follow the existing convention in Mutter and avoid downcasting
+custom GSource structs.
+
+This fixes the following warning:
+    ../src/backends/meta-screen-cast-stream-src.c:1301:20: error: dereferencing type-punned pointer will break strict-aliasing rules [-Werror=strict-aliasing]
+     1301 |   g_clear_pointer ((GSource **) &priv->pipewire_source, g_source_destroy);
+    /usr/include/glib-2.0/glib/glib-typeof.h:36:36: note: in definition of macro ‘glib_typeof’
+       36 | #define glib_typeof(t) __typeof__ (t)
+          |                                    ^
+    ../src/backends/meta-screen-cast-stream-src.c:1301:3: note: in expansion of macro ‘g_clear_pointer’
+     1301 |   g_clear_pointer ((GSource **) &priv->pipewire_source, g_source_destroy);
+          |   ^~~~~~~~~~~~~~~
+---
+ src/backends/meta-screen-cast-stream-src.c | 38 +++++++++++++---------
+ 1 file changed, 22 insertions(+), 16 deletions(-)
+
+diff --git a/src/backends/meta-screen-cast-stream-src.c b/src/backends/meta-screen-cast-stream-src.c
+index 1e009070c..0d8bc1751 100644
+--- a/src/backends/meta-screen-cast-stream-src.c
++++ b/src/backends/meta-screen-cast-stream-src.c
+@@ -78,7 +78,7 @@ static guint signals[N_SIGNALS];
+ 
+ typedef struct _MetaPipeWireSource
+ {
+-  GSource base;
++  GSource source;
+ 
+   MetaScreenCastStreamSrc *src;
+   struct pw_loop *pipewire_loop;
+@@ -90,7 +90,7 @@ typedef struct _MetaScreenCastStreamSrcPrivate
+ 
+   struct pw_context *pipewire_context;
+   struct pw_core *pipewire_core;
+-  MetaPipeWireSource *pipewire_source;
++  GSource *pipewire_source;
+   struct spa_hook pipewire_core_listener;
+ 
+   gboolean is_enabled;
+@@ -1145,7 +1145,7 @@ on_core_error (void       *data,
+ }
+ 
+ static gboolean
+-pipewire_loop_source_prepare (GSource *base,
++pipewire_loop_source_prepare (GSource *source,
+                               int     *timeout)
+ {
+   *timeout = -1;
+@@ -1190,24 +1190,21 @@ static GSourceFuncs pipewire_source_funcs =
+   pipewire_loop_source_finalize
+ };
+ 
+-static MetaPipeWireSource *
+-create_pipewire_source (MetaScreenCastStreamSrc *src)
++static GSource *
++create_pipewire_source (MetaScreenCastStreamSrc *src,
++                        struct pw_loop          *pipewire_loop)
+ {
+   GSource *source;
+   MetaPipeWireSource *pipewire_source;
+ 
+   source = g_source_new (&pipewire_source_funcs, sizeof (MetaPipeWireSource));
+   g_source_set_name (source, "[mutter] PipeWire");
++
+   pipewire_source = (MetaPipeWireSource *) source;
+   pipewire_source->src = src;
+-  pipewire_source->pipewire_loop = pw_loop_new (NULL);
+-  if (!pipewire_source->pipewire_loop)
+-    {
+-      g_source_unref ((GSource *) pipewire_source);
+-      return NULL;
+-    }
++  pipewire_source->pipewire_loop = pipewire_loop;
+ 
+-  g_source_add_unix_fd (&pipewire_source->base,
++  g_source_add_unix_fd (source,
+                         pw_loop_get_fd (pipewire_source->pipewire_loop),
+                         G_IO_IN | G_IO_ERR);
+ 
+@@ -1215,7 +1212,7 @@ create_pipewire_source (MetaScreenCastStreamSrc *src)
+   g_source_attach (source, NULL);
+   g_source_unref (source);
+ 
+-  return pipewire_source;
++  return source;
+ }
+ 
+ static const struct pw_core_events core_events = {
+@@ -1231,8 +1228,17 @@ meta_screen_cast_stream_src_initable_init (GInitable     *initable,
+   MetaScreenCastStreamSrc *src = META_SCREEN_CAST_STREAM_SRC (initable);
+   MetaScreenCastStreamSrcPrivate *priv =
+     meta_screen_cast_stream_src_get_instance_private (src);
++  struct pw_loop *pipewire_loop;
++
++  pipewire_loop = pw_loop_new (NULL);
++  if (!pipewire_loop)
++    {
++      g_set_error (error, G_IO_ERROR, G_IO_ERROR_FAILED,
++                   "Failed to create PipeWire loop");
++      return FALSE;
++    }
+ 
+-  priv->pipewire_source = create_pipewire_source (src);
++  priv->pipewire_source = create_pipewire_source (src, pipewire_loop);
+   if (!priv->pipewire_source)
+     {
+       g_set_error (error, G_IO_ERROR, G_IO_ERROR_FAILED,
+@@ -1240,7 +1246,7 @@ meta_screen_cast_stream_src_initable_init (GInitable     *initable,
+       return FALSE;
+     }
+ 
+-  priv->pipewire_context = pw_context_new (priv->pipewire_source->pipewire_loop,
++  priv->pipewire_context = pw_context_new (pipewire_loop,
+                                            NULL, 0);
+   if (!priv->pipewire_context)
+     {
+@@ -1298,7 +1304,7 @@ meta_screen_cast_stream_src_dispose (GObject *object)
+   g_clear_pointer (&priv->dmabuf_handles, g_hash_table_destroy);
+   g_clear_pointer (&priv->pipewire_core, pw_core_disconnect);
+   g_clear_pointer (&priv->pipewire_context, pw_context_destroy);
+-  g_clear_pointer ((GSource **) &priv->pipewire_source, g_source_destroy);
++  g_clear_pointer (&priv->pipewire_source, g_source_destroy);
+ 
+   G_OBJECT_CLASS (meta_screen_cast_stream_src_parent_class)->dispose (object);
+ }
+-- 
+2.36.1
+
+
+From df694cb3938e49089381bc83136f5163627a6d53 Mon Sep 17 00:00:00 2001
 From: Dor Askayo <dor.askayo@gmail.com>
 Date: Sat, 4 Jul 2020 01:03:19 +0300
-Subject: [PATCH 02/22] renderer-view: Keep track of the associated MetaOutput
+Subject: [PATCH 04/25] renderer-view: Keep track of the associated MetaOutput
 
 ---
  src/backends/meta-renderer-view.c             | 24 +++++++++++++++++++
@@ -154,10 +396,10 @@ index 7c1a4facf..2f9eca5ba 100644
 2.36.1
 
 
-From 1231adb6357ec3fea4e580beb6ae13b217889e76 Mon Sep 17 00:00:00 2001
+From 29497063890da12110f62e25e50b62652b5f7954 Mon Sep 17 00:00:00 2001
 From: Dor Askayo <dor.askayo@gmail.com>
 Date: Sun, 16 Aug 2020 17:14:03 +0300
-Subject: [PATCH 03/22] surface-actor: Add "frozen" signal
+Subject: [PATCH 05/25] surface-actor: Add "frozen" signal
 
 This signal is emitted when the surface actor is frozen and will not
 update until it is thawed.
@@ -205,10 +447,10 @@ index c2bf6696a..978ccf9e6 100644
 2.36.1
 
 
-From d1f9d68926df8dea289f6530360bddb3f8335f43 Mon Sep 17 00:00:00 2001
+From 7c59594e9ff43d1565d00a0132556918bdac95fe Mon Sep 17 00:00:00 2001
 From: Dor Askayo <dor.askayo@gmail.com>
 Date: Sun, 16 Aug 2020 19:50:45 +0300
-Subject: [PATCH 04/22] clutter/stage: Allow scheduling stage updates in the
+Subject: [PATCH 06/25] clutter/stage: Allow scheduling stage updates in the
  context of an actor
 
 This is required synchronizing the frame clock to the update rate of
@@ -346,10 +588,10 @@ index 5412c4d72..a579820a4 100644
 2.36.1
 
 
-From f12aaf45e618db1b23503bf7a860f95bff2f1627 Mon Sep 17 00:00:00 2001
+From eceff6b189c97522adcf300369ce7413d6e8c208 Mon Sep 17 00:00:00 2001
 From: Dor Askayo <dor.askayo@gmail.com>
 Date: Sat, 13 Mar 2021 12:55:09 +0200
-Subject: [PATCH 05/22] clutter/frame-clock: Simplify logic around early
+Subject: [PATCH 07/25] clutter/frame-clock: Simplify logic around early
  presented event
 
 A few calculations and assignments are done unnecessarily when the
@@ -360,7 +602,7 @@ complexity of the function for no reason.
  1 file changed, 23 insertions(+), 23 deletions(-)
 
 diff --git a/clutter/clutter/clutter-frame-clock.c b/clutter/clutter/clutter-frame-clock.c
-index 23141f1c9..f82272089 100644
+index 6fa2b2588..442844d90 100644
 --- a/clutter/clutter/clutter-frame-clock.c
 +++ b/clutter/clutter/clutter-frame-clock.c
 @@ -406,8 +406,6 @@ calculate_next_update_time_us (ClutterFrameClock *frame_clock,
@@ -428,10 +670,10 @@ index 23141f1c9..f82272089 100644
 2.36.1
 
 
-From 6f26769f5796e2d20fc0b8a84b16cce95012cda7 Mon Sep 17 00:00:00 2001
+From 61b0d7228aaeef2243736a2ff60d36e8ca26de68 Mon Sep 17 00:00:00 2001
 From: Dor Askayo <dor.askayo@gmail.com>
 Date: Tue, 4 Aug 2020 00:28:12 +0300
-Subject: [PATCH 06/22] clutter/frame-clock: Add a mode for variable scheduling
+Subject: [PATCH 08/25] clutter/frame-clock: Add a mode for variable scheduling
 
 A new variable mode is introduced which allows:
   * Immediate update scheduling, even when an update is already
@@ -446,7 +688,7 @@ synchronization of page flips to actor frames.
  2 files changed, 120 insertions(+), 33 deletions(-)
 
 diff --git a/clutter/clutter/clutter-frame-clock.c b/clutter/clutter/clutter-frame-clock.c
-index f82272089..9419acf0d 100644
+index 442844d90..36c388db9 100644
 --- a/clutter/clutter/clutter-frame-clock.c
 +++ b/clutter/clutter/clutter-frame-clock.c
 @@ -47,6 +47,9 @@ typedef struct _EstimateQueue
@@ -810,10 +1052,10 @@ index 91e6b3a13..0b2325a56 100644
 2.36.1
 
 
-From b10727226b91db679204d137a12e59bdf3fdfa07 Mon Sep 17 00:00:00 2001
+From 2e6469169ed824c988afdde2df9eb411cbbcdca6 Mon Sep 17 00:00:00 2001
 From: Dor Askayo <dor.askayo@gmail.com>
 Date: Fri, 10 Jul 2020 18:40:07 +0300
-Subject: [PATCH 07/22] backends/native: Introduce MetaRendererViewNative
+Subject: [PATCH 09/25] backends/native: Introduce MetaRendererViewNative
 
 MetaRendererViewNative is a MetaRendererView which contains logic
 specific to views of the native backend. It will be used by following
@@ -1163,10 +1405,10 @@ index 000000000..e42064006
 +
 +#endif /* META_RENDERER_VIEW_NATIVE_H */
 diff --git a/src/meson.build b/src/meson.build
-index f752f03d9..d3d1ae0f4 100644
+index 13a69c1a6..0d1a78fc9 100644
 --- a/src/meson.build
 +++ b/src/meson.build
-@@ -775,6 +775,8 @@ if have_native_backend
+@@ -769,6 +769,8 @@ if have_native_backend
      'backends/native/meta-renderer-native-private.h',
      'backends/native/meta-renderer-native.c',
      'backends/native/meta-renderer-native.h',
@@ -1179,53 +1421,76 @@ index f752f03d9..d3d1ae0f4 100644
 2.36.1
 
 
-From e1c566e8fee1a1bbc5f888b41091b44e0a798850 Mon Sep 17 00:00:00 2001
+From efbbdfab38a4d7deb59eae6d7f4bda8a1e504e7b Mon Sep 17 00:00:00 2001
 From: Dor Askayo <dor.askayo@gmail.com>
 Date: Sat, 4 Jul 2020 22:13:55 +0300
-Subject: [PATCH 08/22] renderer-view/native: Allow syncing frame clock updates
+Subject: [PATCH 10/25] renderer-view/native: Allow syncing frame clock updates
  with actor updates
 
-Allow per-view sychnronization of frame clock updates to updates
-generated by a specified actor.
+Allow per-view tracking of actors for the purpose of synchronizing
+the frame clock to their updates.
 
 This uses the variable mode of ClutterFrameClock to either perform an
 immediate update or a delayed update depending on whether the update
-is performed in the context of the specified actor or a different
-actor.
+is performed in the context of the tracked actor or a different one.
 
-This approach allows minimum latency between updates of the actor and
-updates of the view, and avoids updates of the view when the
-specified actor has not updated.
+This approach achieves a minimal latency between updates of the actor
+and updates of the view, and delays updates of the view when the
+tracked actor has not updated.
 
-If the specified actor is frozen or destroyed, the synchornization is
+Changes in the synchronization mode are applied asynchronously at the
+preparation phase of the next frame.
+
+If the tracked actor is frozen or destroyed, the synchornization is
 stopped as no further updates from the actor are expected.
 
-For now, the ClutterFrameClock mode is always set to
-CLUTTER_FRAME_CLOCK_MODE_FIXED and frame synchronization isn't enabled
-since this is the preferred behavior when the refresh rate is fixed.
-When support for variable refresh rate is added in the following
-commits, CLUTTER_FRAME_CLOCK_MODE_VARIABLE and frame synchronization
-will be activated.
+For now, the only applicable synchronization mode is
+META_FRAME_SYNC_MODE_DISABLED, which doesn't synchronize to actor
+updates and keeps the frame clock on the its default fixed mode.
+When support for VRR is added in the commits to follow,
+META_FRAME_SYNC_MODE_ENABLED will be set when appropriate.
 ---
- .../native/meta-renderer-view-native.c        | 109 ++++++++++++++++++
- .../native/meta-renderer-view-native.h        |   3 +
- 2 files changed, 112 insertions(+)
+ src/backends/native/meta-renderer-native.c    |   1 +
+ .../native/meta-renderer-view-native.c        | 158 ++++++++++++++++++
+ .../native/meta-renderer-view-native.h        |   5 +
+ 3 files changed, 164 insertions(+)
 
+diff --git a/src/backends/native/meta-renderer-native.c b/src/backends/native/meta-renderer-native.c
+index fdfe4a35f..8fc365ea0 100644
+--- a/src/backends/native/meta-renderer-native.c
++++ b/src/backends/native/meta-renderer-native.c
+@@ -1454,6 +1454,7 @@ meta_renderer_native_prepare_frame (MetaRendererNative *renderer_native,
+   kms_device = meta_kms_crtc_get_device (kms_crtc);
+ 
+   meta_crtc_kms_maybe_set_gamma (crtc_kms, kms_device);
++  meta_renderer_view_native_maybe_set_frame_sync (META_RENDERER_VIEW_NATIVE (view));
+ }
+ 
+ void
 diff --git a/src/backends/native/meta-renderer-view-native.c b/src/backends/native/meta-renderer-view-native.c
-index 38fd0453d..bef97db05 100644
+index 38fd0453d..14f3c543b 100644
 --- a/src/backends/native/meta-renderer-view-native.c
 +++ b/src/backends/native/meta-renderer-view-native.c
-@@ -24,20 +24,129 @@
+@@ -24,20 +24,178 @@
  
  #include "backends/native/meta-renderer-view-native.h"
  
 +#include "clutter/clutter.h"
 +
++typedef enum _MetaFrameSyncMode
++{
++  META_FRAME_SYNC_MODE_INIT,
++  META_FRAME_SYNC_MODE_ENABLED,
++  META_FRAME_SYNC_MODE_DISABLED
++} MetaFrameSyncMode;
++
  struct _MetaRendererViewNative
  {
    MetaRendererView parent;
 +
-+  gboolean frame_sync_active;
++  gboolean frame_sync_mode_update_queued;
++
++  MetaFrameSyncMode frame_sync_mode;
 +  ClutterActor *frame_sync_actor;
 +
 +  gulong frame_sync_actor_frozen_id;
@@ -1235,17 +1500,6 @@ index 38fd0453d..bef97db05 100644
  G_DEFINE_TYPE (MetaRendererViewNative, meta_renderer_view_native,
                 META_TYPE_RENDERER_VIEW);
  
-+static void
-+meta_renderer_view_native_update_sync_mode (MetaRendererViewNative *view_native)
-+{
-+  ClutterFrameClock *frame_clock =
-+    clutter_stage_view_get_frame_clock (CLUTTER_STAGE_VIEW (view_native));
-+
-+  clutter_frame_clock_set_mode (frame_clock,
-+                                CLUTTER_FRAME_CLOCK_MODE_FIXED);
-+  view_native->frame_sync_active = FALSE;
-+}
-+
 +static void
 +on_frame_sync_actor_frozen (ClutterActor           *actor,
 +                            MetaRendererViewNative *view_native)
@@ -1271,7 +1525,7 @@ index 38fd0453d..bef97db05 100644
 +
 +  frame_clock = clutter_stage_view_get_frame_clock (stage_view);
 +
-+  if (view_native->frame_sync_active &&
++  if (view_native->frame_sync_mode == META_FRAME_SYNC_MODE_ENABLED &&
 +      actor == view_native->frame_sync_actor)
 +    clutter_frame_clock_schedule_update_now (frame_clock);
 +  else
@@ -1295,19 +1549,69 @@ index 38fd0453d..bef97db05 100644
 +
 +  if (actor)
 +    {
-+        view_native->frame_sync_actor_frozen_id =
-+        g_signal_connect (actor, "frozen",
-+                          G_CALLBACK (on_frame_sync_actor_frozen),
-+                          view_native);
-+        view_native->frame_sync_actor_destroy_id =
-+        g_signal_connect (actor, "destroy",
-+                          G_CALLBACK (on_frame_sync_actor_destroyed),
-+                          view_native);
++      view_native->frame_sync_actor_frozen_id =
++      g_signal_connect (actor, "frozen",
++                        G_CALLBACK (on_frame_sync_actor_frozen),
++                        view_native);
++      view_native->frame_sync_actor_destroy_id =
++      g_signal_connect (actor, "destroy",
++                        G_CALLBACK (on_frame_sync_actor_destroyed),
++                        view_native);
 +    }
 +
 +  view_native->frame_sync_actor = actor;
 +
-+  meta_renderer_view_native_update_sync_mode (view_native);
++  view_native->frame_sync_mode_update_queued = TRUE;
++}
++
++static void
++meta_renderer_view_native_set_frame_sync (MetaRendererViewNative *view_native,
++                                          MetaFrameSyncMode       sync_mode)
++{
++  ClutterFrameClock *frame_clock =
++    clutter_stage_view_get_frame_clock (CLUTTER_STAGE_VIEW (view_native));
++
++  switch (sync_mode)
++    {
++    case META_FRAME_SYNC_MODE_ENABLED:
++      clutter_frame_clock_set_mode (frame_clock,
++                                    CLUTTER_FRAME_CLOCK_MODE_VARIABLE);
++      break;
++    case META_FRAME_SYNC_MODE_DISABLED:
++      clutter_frame_clock_set_mode (frame_clock,
++                                    CLUTTER_FRAME_CLOCK_MODE_FIXED);
++      break;
++    case META_FRAME_SYNC_MODE_INIT:
++      g_assert_not_reached ();
++    }
++
++  view_native->frame_sync_mode = sync_mode;
++}
++
++static MetaFrameSyncMode
++meta_renderer_view_native_get_applicable_sync_mode (MetaRendererViewNative *view_native)
++{
++  return META_FRAME_SYNC_MODE_DISABLED;
++}
++
++void
++meta_renderer_view_native_maybe_set_frame_sync (MetaRendererViewNative *view_native)
++{
++  MetaFrameSyncMode applicable_sync_mode;
++
++  if (G_LIKELY (!view_native->frame_sync_mode_update_queued))
++    return;
++
++  view_native->frame_sync_mode_update_queued = FALSE;
++
++  applicable_sync_mode =
++    meta_renderer_view_native_get_applicable_sync_mode (view_native);
++
++  if (applicable_sync_mode != view_native->frame_sync_mode)
++    {
++      meta_renderer_view_native_set_frame_sync (view_native,
++                                                applicable_sync_mode);
++    }
 +}
 +
 +static void
@@ -1329,7 +1633,8 @@ index 38fd0453d..bef97db05 100644
  static void
  meta_renderer_view_native_init (MetaRendererViewNative *view_native)
  {
-+  view_native->frame_sync_active = FALSE;
++  view_native->frame_sync_mode_update_queued = TRUE;
++  view_native->frame_sync_mode = META_FRAME_SYNC_MODE_INIT;
 +  view_native->frame_sync_actor = NULL;
 +  view_native->frame_sync_actor_frozen_id = 0;
 +  view_native->frame_sync_actor_destroy_id = 0;
@@ -1346,25 +1651,27 @@ index 38fd0453d..bef97db05 100644
 +  clutter_stage_view_class->schedule_actor_update = meta_renderer_view_native_schedule_actor_update;
  }
 diff --git a/src/backends/native/meta-renderer-view-native.h b/src/backends/native/meta-renderer-view-native.h
-index e42064006..b4ec1ebd8 100644
+index e42064006..07f90ffb7 100644
 --- a/src/backends/native/meta-renderer-view-native.h
 +++ b/src/backends/native/meta-renderer-view-native.h
-@@ -31,4 +31,7 @@
+@@ -31,4 +31,9 @@
  G_DECLARE_FINAL_TYPE (MetaRendererViewNative, meta_renderer_view_native,
                        META, RENDERER_VIEW_NATIVE, MetaRendererView)
  
 +void meta_renderer_view_native_set_frame_sync_actor (MetaRendererViewNative *view_native,
 +                                                     ClutterActor           *actor);
 +
++void meta_renderer_view_native_maybe_set_frame_sync (MetaRendererViewNative *view_native);
++
  #endif /* META_RENDERER_VIEW_NATIVE_H */
 -- 
 2.36.1
 
 
-From 62e061076bc42255e65b07375555910e43939edc Mon Sep 17 00:00:00 2001
+From 55bb6f5bcadbf860da9828b6c60d6c5a478b161c Mon Sep 17 00:00:00 2001
 From: Dor Askayo <dor.askayo@gmail.com>
 Date: Sun, 16 Aug 2020 20:11:48 +0300
-Subject: [PATCH 09/22] wayland/actor-surface: Schedule actor updates for frame
+Subject: [PATCH 11/25] wayland/actor-surface: Schedule actor updates for frame
  callbacks
 
 ---
@@ -1389,10 +1696,10 @@ index b6d26fdc1..096b46aa2 100644
 2.36.1
 
 
-From 88bc04d0b55632d244e92f238481da946597e361 Mon Sep 17 00:00:00 2001
+From 1393fb96206f5d0cec592238b82a405b3e7fe827 Mon Sep 17 00:00:00 2001
 From: Dor Askayo <dor.askayo@gmail.com>
 Date: Sun, 16 Aug 2020 10:07:54 +0300
-Subject: [PATCH 10/22] clutter/stage: Always schedule actor updates on redraw
+Subject: [PATCH 12/25] clutter/stage: Always schedule actor updates on redraw
 
 When updates are scheduled in the context of specific actors,
 already-scheduled updates may need to be rescheduled based on the
@@ -1454,10 +1761,10 @@ index 3e81655e0..f40df1017 100644
 2.36.1
 
 
-From 3330dd975510e5f0df2b40f6b50b19d010bc34f4 Mon Sep 17 00:00:00 2001
+From 84ce23d92f1f5b2cc79d1818cec35cc58d04b126 Mon Sep 17 00:00:00 2001
 From: Dor Askayo <dor.askayo@gmail.com>
 Date: Tue, 17 Mar 2020 21:39:49 +0200
-Subject: [PATCH 11/22] window: Allow indicating that variable refresh rate is
+Subject: [PATCH 13/25] window: Allow indicating that variable refresh rate is
  supported
 
 ---
@@ -1529,17 +1836,129 @@ index 95a8e33e0..175a01d34 100644
 2.36.1
 
 
-From 39bb43ba47ed483b186a15f7e48c508e1b62949a Mon Sep 17 00:00:00 2001
+From 8df65c1df1373c8222a682ff622a0a0a49e799b8 Mon Sep 17 00:00:00 2001
+From: Dor Askayo <dor.askayo@gmail.com>
+Date: Sat, 11 Jun 2022 12:50:02 +0300
+Subject: [PATCH 14/25] window: Allow checking if a window covers a rect
+
+This is just a small function to improve the readability of the code.
+---
+ src/core/window-private.h | 3 +++
+ src/core/window.c         | 8 ++++++++
+ 2 files changed, 11 insertions(+)
+
+diff --git a/src/core/window-private.h b/src/core/window-private.h
+index f337dfef8..6c6b483c6 100644
+--- a/src/core/window-private.h
++++ b/src/core/window-private.h
+@@ -718,6 +718,9 @@ void        meta_window_get_session_geometry (MetaWindow  *window,
+                                               int         *width,
+                                               int         *height);
+ 
++gboolean    meta_window_contains_rect (MetaWindow    *window,
++                                       MetaRectangle *rect);
++
+ void        meta_window_update_unfocused_button_grabs (MetaWindow *window);
+ 
+ void        meta_window_update_appears_focused (MetaWindow *window);
+diff --git a/src/core/window.c b/src/core/window.c
+index 175a01d34..fed841ed4 100644
+--- a/src/core/window.c
++++ b/src/core/window.c
+@@ -4274,6 +4274,14 @@ meta_window_get_session_geometry (MetaWindow  *window,
+     window->size_hints.height_inc;
+ }
+ 
++gboolean
++meta_window_contains_rect (MetaWindow    *window,
++                           MetaRectangle *rect)
++{
++  return meta_rectangle_contains_rect (&window->buffer_rect,
++                                       rect);
++}
++
+ /**
+  * meta_window_get_buffer_rect:
+  * @window: a #MetaWindow
+-- 
+2.36.1
+
+
+From e5354f34f9947adfee5163df0e36e1f6aa2a626a Mon Sep 17 00:00:00 2001
+From: Dor Askayo <dor.askayo@gmail.com>
+Date: Sat, 11 Jun 2022 13:03:24 +0300
+Subject: [PATCH 15/25] workspace: Allow searching for the topmost window
+ overlapping a rect
+
+This is useful for determining if a window is the topmost window in
+a view.
+---
+ src/core/workspace-private.h |  3 +++
+ src/core/workspace.c         | 22 ++++++++++++++++++++++
+ 2 files changed, 25 insertions(+)
+
+diff --git a/src/core/workspace-private.h b/src/core/workspace-private.h
+index f0d896f6c..67abc89df 100644
+--- a/src/core/workspace-private.h
++++ b/src/core/workspace-private.h
+@@ -92,6 +92,9 @@ GList* meta_workspace_get_onscreen_region       (MetaWorkspace *workspace);
+ GList * meta_workspace_get_onmonitor_region (MetaWorkspace      *workspace,
+                                              MetaLogicalMonitor *logical_monitor);
+ 
++MetaWindow * meta_workspace_topmost_window_on_rect (MetaWorkspace *workspace,
++                                                    MetaRectangle *rect);
++
+ MetaWindow * meta_workspace_get_default_focus_window (MetaWorkspace *workspace);
+ void meta_workspace_focus_default_window (MetaWorkspace *workspace,
+                                           MetaWindow    *not_this_one,
+diff --git a/src/core/workspace.c b/src/core/workspace.c
+index 3bd517fca..dd2feb5fe 100644
+--- a/src/core/workspace.c
++++ b/src/core/workspace.c
+@@ -1327,6 +1327,28 @@ meta_workspace_get_default_focus_window (MetaWorkspace *workspace)
+     }
+ }
+ 
++MetaWindow *
++meta_workspace_topmost_window_on_rect (MetaWorkspace *workspace,
++                                       MetaRectangle *rect)
++{
++  GList *stack = workspace->display->stack->sorted;
++  GList *l;
++
++  for (l = stack; l != NULL; l = l->next)
++    {
++      MetaWindow *window = l->data;
++      MetaRectangle *window_frame_rect = &window->rect;
++
++      if (!meta_window_located_on_workspace (window, workspace))
++        continue;
++
++      if (meta_rectangle_overlap (window_frame_rect, rect))
++        return window;
++    }
++
++  return NULL;
++}
++
+ void
+ meta_workspace_focus_default_window (MetaWorkspace *workspace,
+                                      MetaWindow    *not_this_one,
+-- 
+2.36.1
+
+
+From fb2084ae22018f66c0259b237cb159a8671ebf8c Mon Sep 17 00:00:00 2001
 From: Dor Askayo <dor.askayo@gmail.com>
 Date: Tue, 17 Mar 2020 01:44:25 +0200
-Subject: [PATCH 12/22] compositor/native: Request frame sync for compatible
+Subject: [PATCH 16/25] compositor/native: Request frame sync for compatible
  windows
 
 ---
  src/compositor/meta-compositor-native.c | 20 ++++++-
  src/compositor/meta-compositor-native.h |  3 ++
- src/compositor/meta-window-actor.c      | 69 +++++++++++++++++++++++++
- 3 files changed, 91 insertions(+), 1 deletion(-)
+ src/compositor/meta-window-actor.c      | 70 +++++++++++++++++++++++++
+ 3 files changed, 92 insertions(+), 1 deletion(-)
 
 diff --git a/src/compositor/meta-compositor-native.c b/src/compositor/meta-compositor-native.c
 index bc17704e1..8c4c419d6 100644
@@ -1614,10 +2033,18 @@ index 2b1c65208..dcb9c7dc1 100644
                                                     MetaBackend *backend);
  
 diff --git a/src/compositor/meta-window-actor.c b/src/compositor/meta-window-actor.c
-index ae1fa4d90..721656fd6 100644
+index ae1fa4d90..82a251f5b 100644
 --- a/src/compositor/meta-window-actor.c
 +++ b/src/compositor/meta-window-actor.c
-@@ -41,6 +41,11 @@
+@@ -34,6 +34,7 @@
+ #include "compositor/meta-window-actor-private.h"
+ #include "core/boxes-private.h"
+ #include "core/window-private.h"
++#include "core/workspace-private.h"
+ #include "meta/window.h"
+ 
+ #ifdef HAVE_WAYLAND
+@@ -41,6 +42,11 @@
  #include "wayland/meta-wayland-surface.h"
  #endif
  
@@ -1629,23 +2056,11 @@ index ae1fa4d90..721656fd6 100644
  typedef enum
  {
    INITIALLY_FROZEN,
-@@ -1053,6 +1058,65 @@ meta_window_actor_sync_visibility (MetaWindowActor *self)
+@@ -1053,6 +1059,65 @@ meta_window_actor_sync_visibility (MetaWindowActor *self)
      }
  }
  
 +#ifdef HAVE_NATIVE_BACKEND
-+static gboolean
-+meta_window_covers_view (MetaWindow       *window,
-+                         ClutterStageView *stage_view)
-+{
-+  MetaRectangle view_layout;
-+
-+  clutter_stage_view_get_layout (stage_view, &view_layout);
-+
-+  return meta_rectangle_contains_rect (&window->buffer_rect,
-+                                       &view_layout);
-+}
-+
 +static void
 +meta_window_actor_maybe_request_frame_sync (MetaWindowActor  *window_actor,
 +                                            ClutterStageView *stage_view)
@@ -1656,6 +2071,8 @@ index ae1fa4d90..721656fd6 100644
 +  MetaCompositorNative *compositor_native =
 +    META_COMPOSITOR_NATIVE (compositor);
 +  MetaWindow *window;
++  MetaRectangle view_layout;
++  MetaWorkspace *workspace;
 +  MetaSurfaceActor *surface_actor;
 +
 +  if (meta_compositor_is_unredirect_inhibited (compositor))
@@ -1680,7 +2097,17 @@ index ae1fa4d90..721656fd6 100644
 +  if (!meta_window_should_be_showing (window))
 +    return;
 +
-+  if (!meta_window_covers_view (window, stage_view))
++  clutter_stage_view_get_layout (stage_view, &view_layout);
++
++  if (!meta_window_contains_rect (window, &view_layout))
++    return;
++
++  workspace = meta_window_get_workspace (window);
++  if (workspace == NULL)
++    return;
++
++  if (window != meta_workspace_topmost_window_on_rect (workspace,
++                                                       &view_layout))
 +    return;
 +
 +  surface_actor = meta_window_actor_get_surface (window_actor);
@@ -1695,7 +2122,7 @@ index ae1fa4d90..721656fd6 100644
  void
  meta_window_actor_before_paint (MetaWindowActor  *self,
                                  ClutterStageView *stage_view)
-@@ -1061,6 +1125,11 @@ meta_window_actor_before_paint (MetaWindowActor  *self,
+@@ -1061,6 +1126,11 @@ meta_window_actor_before_paint (MetaWindowActor  *self,
      return;
  
    META_WINDOW_ACTOR_GET_CLASS (self)->before_paint (self, stage_view);
@@ -1711,20 +2138,20 @@ index ae1fa4d90..721656fd6 100644
 2.36.1
 
 
-From 4e4cc2ce1a596427ac8ad0fb745390c31c2d20d2 Mon Sep 17 00:00:00 2001
+From 7946b7b3bfa3f83c389ff73e1aec3083a8c0add9 Mon Sep 17 00:00:00 2001
 From: Dor Askayo <dor.askayo@gmail.com>
 Date: Tue, 4 Aug 2020 22:07:13 +0300
-Subject: [PATCH 13/22] temp: Assume every window supports VRR
+Subject: [PATCH 17/25] temp: Assume every window supports VRR
 
 ---
  src/compositor/meta-window-actor.c | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/src/compositor/meta-window-actor.c b/src/compositor/meta-window-actor.c
-index 721656fd6..e5c58a15a 100644
+index 82a251f5b..ed4e3516a 100644
 --- a/src/compositor/meta-window-actor.c
 +++ b/src/compositor/meta-window-actor.c
-@@ -1099,8 +1099,8 @@ meta_window_actor_maybe_request_frame_sync (MetaWindowActor  *window_actor,
+@@ -1090,8 +1090,8 @@ meta_window_actor_maybe_request_frame_sync (MetaWindowActor  *window_actor,
    if (!window)
      return;
  
@@ -1739,10 +2166,10 @@ index 721656fd6..e5c58a15a 100644
 2.36.1
 
 
-From 649d664bd59868ebc7024ddbbfa10f77b705a70d Mon Sep 17 00:00:00 2001
+From 5ff7a25e1370ad3d8d8f94cf7ecdda0f97b1ff77 Mon Sep 17 00:00:00 2001
 From: Dor Askayo <dor.askayo@gmail.com>
 Date: Tue, 17 Mar 2020 21:42:37 +0200
-Subject: [PATCH 14/22] connector/kms: Detect variable refresh rate capability
+Subject: [PATCH 18/25] connector/kms: Detect variable refresh rate capability
 
 The "vrr_capable" property indicates whether variable refresh rate is
 supported for a connector.
@@ -1800,10 +2227,10 @@ index c2b763548..381edca97 100644
 2.36.1
 
 
-From bb8176f893e7fa750e9c8be45f5726d63af1e2b9 Mon Sep 17 00:00:00 2001
+From 9c5bea43eaafaea4e5afc4d960d620a29a23bc16 Mon Sep 17 00:00:00 2001
 From: Dor Askayo <dor.askayo@gmail.com>
 Date: Tue, 17 Mar 2020 22:17:59 +0200
-Subject: [PATCH 15/22] update/kms: Allow setting CRTC properties
+Subject: [PATCH 19/25] update/kms: Allow setting CRTC properties
 
 ---
  .../native/meta-kms-impl-device-atomic.c      | 25 ++++++++
@@ -2035,10 +2462,10 @@ index 53fc92eb8..d2e912347 100644
 2.36.1
 
 
-From 4794331a5096909400c003891ff6fa9b4749f4b2 Mon Sep 17 00:00:00 2001
+From e5df29b0b14c71c5c45ce830d6f3779a53fe6498 Mon Sep 17 00:00:00 2001
 From: Dor Askayo <dor.askayo@gmail.com>
 Date: Thu, 9 Jun 2022 23:49:23 +0300
-Subject: [PATCH 16/22] kms/update: Explicitly track whether ALLOW_MODESET is
+Subject: [PATCH 20/25] kms/update: Explicitly track whether ALLOW_MODESET is
  required
 
 This will be used by a following commit to set the
@@ -2124,10 +2551,10 @@ index d2e912347..3feb9b05a 100644
 2.36.1
 
 
-From 07bb67c6263ffff5648d47e666452b9e4b4765a4 Mon Sep 17 00:00:00 2001
+From 4b74efe60104d4f28a22d7a3c6721170eb08b66d Mon Sep 17 00:00:00 2001
 From: Dor Askayo <dor.askayo@gmail.com>
 Date: Tue, 17 Mar 2020 21:44:15 +0200
-Subject: [PATCH 17/22] crtc/kms: Allow setting the "VRR_ENABLED" property on a
+Subject: [PATCH 21/25] crtc/kms: Allow setting the "VRR_ENABLED" property on a
  CRTC
 
 Add the "VRR_ENABLED" CRTC propetry ID and a funtion to update its
@@ -2317,25 +2744,26 @@ index f31e36aad..2f69c754b 100644
 2.36.1
 
 
-From bdca54794c9ee8c7a90aa7eb3af61392030a6169 Mon Sep 17 00:00:00 2001
+From 6ba65e6d62ebb7231fe122afd66b23f6361eecf2 Mon Sep 17 00:00:00 2001
 From: Dor Askayo <dor.askayo@gmail.com>
-Date: Tue, 17 Mar 2020 21:50:19 +0200
-Subject: [PATCH 18/22] output/kms: Allow setting the variable refresh rate
+Date: Fri, 10 Jun 2022 19:45:47 +0300
+Subject: [PATCH 22/25] output/kms: Allow setting the variable refresh rate
  mode of an output
 
-Add a function that enables variable refresh rate on a CRTC when it
-is enabled and requested for the given output. If it isn't requested
-or enabled for the output, it is disabled on the CRTC.
+Add a function that enables variable refresh rate on a CRTC.
+
+Also add functions to check if an output is capable of VRR and
+whether VRR is configured to be enabled on the output.
 
 An output is considered capable of variable refresh rate if its
 connector supports it.
 ---
  src/backends/meta-monitor-manager-private.h |  1 +
- src/backends/meta-output.c                  | 30 +++++++++++++++++++++
- src/backends/meta-output.h                  |  9 +++++++
- src/backends/native/meta-output-kms.c       | 23 ++++++++++++++++
+ src/backends/meta-output.c                  | 19 ++++++++++++++
+ src/backends/meta-output.h                  |  6 +++++
+ src/backends/native/meta-output-kms.c       | 28 +++++++++++++++++++++
  src/backends/native/meta-output-kms.h       |  3 +++
- 5 files changed, 66 insertions(+)
+ 5 files changed, 57 insertions(+)
 
 diff --git a/src/backends/meta-monitor-manager-private.h b/src/backends/meta-monitor-manager-private.h
 index edf7e4501..dc0d27de5 100644
@@ -2350,23 +2778,30 @@ index edf7e4501..dc0d27de5 100644
  
  /*
 diff --git a/src/backends/meta-output.c b/src/backends/meta-output.c
-index ed4807507..e816cb570 100644
+index ed4807507..1d01a964e 100644
 --- a/src/backends/meta-output.c
 +++ b/src/backends/meta-output.c
-@@ -55,6 +55,9 @@ typedef struct _MetaOutputPrivate
+@@ -55,6 +55,8 @@ typedef struct _MetaOutputPrivate
  
    gboolean is_underscanning;
  
 +  gboolean is_vrr_enabled;
-+  gboolean is_vrr_requested;
 +
    int backlight;
  } MetaOutputPrivate;
  
-@@ -177,6 +180,31 @@ meta_output_is_underscanning (MetaOutput *output)
+@@ -177,6 +179,22 @@ meta_output_is_underscanning (MetaOutput *output)
    return priv->is_underscanning;
  }
  
++gboolean
++meta_output_is_vrr_capable (MetaOutput *output)
++{
++  const MetaOutputInfo *output_info = meta_output_get_info (output);
++
++  return output_info->vrr_capable;
++}
++
 +gboolean
 +meta_output_is_vrr_enabled (MetaOutput *output)
 +{
@@ -2375,27 +2810,10 @@ index ed4807507..e816cb570 100644
 +  return priv->is_vrr_enabled;
 +}
 +
-+void
-+meta_output_set_vrr_requested (MetaOutput *output,
-+                               int         vrr_requested)
-+{
-+  MetaOutputPrivate *priv = meta_output_get_instance_private (output);
-+
-+  priv->is_vrr_requested = vrr_requested;
-+}
-+
-+gboolean
-+meta_output_is_vrr_requested (MetaOutput *output)
-+{
-+  MetaOutputPrivate *priv = meta_output_get_instance_private (output);
-+
-+  return priv->is_vrr_requested;
-+}
-+
  void
  meta_output_set_backlight (MetaOutput *output,
                             int         backlight)
-@@ -235,6 +263,7 @@ meta_output_assign_crtc (MetaOutput                 *output,
+@@ -235,6 +253,7 @@ meta_output_assign_crtc (MetaOutput                 *output,
    priv->is_primary = output_assignment->is_primary;
    priv->is_presentation = output_assignment->is_presentation;
    priv->is_underscanning = output_assignment->is_underscanning;
@@ -2403,16 +2821,8 @@ index ed4807507..e816cb570 100644
  }
  
  void
-@@ -468,6 +497,7 @@ meta_output_init (MetaOutput *output)
- {
-   MetaOutputPrivate *priv = meta_output_get_instance_private (output);
- 
-+  priv->is_vrr_requested = FALSE;
-   priv->backlight = -1;
- }
- 
 diff --git a/src/backends/meta-output.h b/src/backends/meta-output.h
-index 6c90d7e69..066c7c74e 100644
+index 6c90d7e69..43477c4a4 100644
 --- a/src/backends/meta-output.h
 +++ b/src/backends/meta-output.h
 @@ -103,6 +103,8 @@ typedef struct _MetaOutputInfo
@@ -2424,53 +2834,55 @@ index 6c90d7e69..066c7c74e 100644
    /*
     * Get a new preferred mode on hotplug events, to handle dynamic guest
     * resizing.
-@@ -178,6 +180,13 @@ gboolean meta_output_is_presentation (MetaOutput *output);
+@@ -178,6 +180,10 @@ gboolean meta_output_is_presentation (MetaOutput *output);
  META_EXPORT_TEST
  gboolean meta_output_is_underscanning (MetaOutput *output);
  
++gboolean meta_output_is_vrr_capable (MetaOutput *output);
++
 +gboolean meta_output_is_vrr_enabled (MetaOutput *output);
-+
-+void meta_output_set_vrr_requested (MetaOutput *output,
-+                                    int         vrr_requested);
-+
-+gboolean meta_output_is_vrr_requested (MetaOutput *output);
 +
  void meta_output_set_backlight (MetaOutput *output,
                                  int         backlight);
  
 diff --git a/src/backends/native/meta-output-kms.c b/src/backends/native/meta-output-kms.c
-index fb658f29d..ae28fc966 100644
+index fb658f29d..6b107dab9 100644
 --- a/src/backends/native/meta-output-kms.c
 +++ b/src/backends/native/meta-output-kms.c
-@@ -97,6 +97,27 @@ meta_output_kms_set_underscan (MetaOutputKms *output_kms,
+@@ -97,6 +97,32 @@ meta_output_kms_set_underscan (MetaOutputKms *output_kms,
      }
  }
  
 +void
 +meta_output_kms_set_vrr_mode (MetaOutputKms *output_kms,
-+                              MetaKmsUpdate *kms_update)
++                              gboolean       enabled)
 +{
 +  MetaOutput *output = META_OUTPUT (output_kms);
 +  const MetaOutputInfo *output_info = meta_output_get_info (output);
 +  MetaCrtc *crtc;
 +  MetaKmsCrtc *kms_crtc;
++  MetaKmsDevice *kms_device;
++  MetaKms *kms;
++  MetaKmsUpdate *kms_update;
 +
-+  if (!output_info->vrr_capable)
-+    return;
++  g_assert (output_info->vrr_capable);
 +
 +  crtc = meta_output_get_assigned_crtc (output);
 +  kms_crtc = meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (crtc));
++  kms_device = meta_kms_crtc_get_device (kms_crtc);
++  kms = meta_kms_device_get_kms (kms_device);
++
++  kms_update = meta_kms_ensure_pending_update (kms, kms_device);
 +
 +  meta_kms_update_set_vrr_mode (kms_update,
 +                                kms_crtc,
-+                                (meta_output_is_vrr_enabled (output) &&
-+                                 meta_output_is_vrr_requested (output)));
++                                enabled);
 +}
 +
  static MetaPrivacyScreenState
  meta_output_kms_get_privacy_screen_state (MetaOutput *output)
  {
-@@ -405,6 +426,8 @@ meta_output_kms_new (MetaGpuKms        *gpu_kms,
+@@ -405,6 +431,8 @@ meta_output_kms_new (MetaGpuKms        *gpu_kms,
    output_info->supports_underscanning =
      meta_kms_connector_is_underscanning_supported (kms_connector);
  
@@ -2480,7 +2892,7 @@ index fb658f29d..ae28fc966 100644
  
    drm_connector_type = meta_kms_connector_get_connector_type (kms_connector);
 diff --git a/src/backends/native/meta-output-kms.h b/src/backends/native/meta-output-kms.h
-index 52acc6032..25199a728 100644
+index 52acc6032..54b1721a4 100644
 --- a/src/backends/native/meta-output-kms.h
 +++ b/src/backends/native/meta-output-kms.h
 @@ -40,6 +40,9 @@ void meta_output_kms_set_power_save_mode (MetaOutputKms *output_kms,
@@ -2488,7 +2900,7 @@ index 52acc6032..25199a728 100644
                                      MetaKmsUpdate *kms_update);
  
 +void meta_output_kms_set_vrr_mode (MetaOutputKms *output_kms,
-+                                   MetaKmsUpdate *kms_update);
++                                   gboolean       enabled);
 +
  gboolean meta_output_kms_can_clone (MetaOutputKms *output_kms,
                                      MetaOutputKms *other_output_kms);
@@ -2497,10 +2909,10 @@ index 52acc6032..25199a728 100644
 2.36.1
 
 
-From f545bb393173c6123ad553acff77bda5b107ab08 Mon Sep 17 00:00:00 2001
+From fde8a586e6c6d619614433d13d7df3d0baee9f35 Mon Sep 17 00:00:00 2001
 From: Dor Askayo <dor.askayo@gmail.com>
 Date: Tue, 17 Mar 2020 20:57:41 +0200
-Subject: [PATCH 19/22] monitor: Allow checking the state of variable refresh
+Subject: [PATCH 23/25] monitor: Allow checking the state of variable refresh
  rate
 
 A monitor is considered to have variable refresh rate support if its
@@ -2559,10 +2971,10 @@ index 066caa7f4..a63300cd0 100644
 2.36.1
 
 
-From c6f1612aa6d8a1faa01af20aacb070cd78ce7521 Mon Sep 17 00:00:00 2001
+From b57b86cb6d29776b305676f9f7d4e3851513629e Mon Sep 17 00:00:00 2001
 From: Dor Askayo <dor.askayo@gmail.com>
 Date: Tue, 17 Mar 2020 20:52:16 +0200
-Subject: [PATCH 20/22] monitor-manager: Add variable refresh rate
+Subject: [PATCH 24/25] monitor-manager: Add variable refresh rate
  configuration
 
 This allows enabling variable refresh rate on monitors that support it.
@@ -2579,10 +2991,10 @@ DisplayConfig to be managed through DBus.
  6 files changed, 75 insertions(+), 5 deletions(-)
 
 diff --git a/data/dbus-interfaces/org.gnome.Mutter.DisplayConfig.xml b/data/dbus-interfaces/org.gnome.Mutter.DisplayConfig.xml
-index af78ec051..89d878748 100644
+index af7cd6472..40f666793 100644
 --- a/data/dbus-interfaces/org.gnome.Mutter.DisplayConfig.xml
 +++ b/data/dbus-interfaces/org.gnome.Mutter.DisplayConfig.xml
-@@ -343,6 +343,10 @@
+@@ -336,6 +336,10 @@
  	    - "is-underscanning" (b): whether underscanning is enabled
  				      (absence of this means underscanning
  				      not being supported)
@@ -2593,7 +3005,7 @@ index af78ec051..89d878748 100644
  	    - "max-screen-size" (ii): the maximum size a screen may have
  				      (absence of this means unlimited screen
  				      size)
-@@ -461,6 +465,9 @@
+@@ -454,6 +458,9 @@
  	        - "enable_underscanning" (b): enable monitor underscanning;
  					      may only be set when underscanning
  					      is supported (see GetCurrentState).
@@ -2757,10 +3169,10 @@ index 5d48ec2ea..946d4ed5d 100644
      }
  }
 diff --git a/src/backends/meta-monitor-manager.c b/src/backends/meta-monitor-manager.c
-index 6d9b7f416..93094a21c 100644
+index be99b4664..c4b9c2e05 100644
 --- a/src/backends/meta-monitor-manager.c
 +++ b/src/backends/meta-monitor-manager.c
-@@ -2034,6 +2034,15 @@ meta_monitor_manager_handle_get_current_state (MetaDBusDisplayConfig *skeleton,
+@@ -1977,6 +1977,15 @@ meta_monitor_manager_handle_get_current_state (MetaDBusDisplayConfig *skeleton,
                                   g_variant_new_boolean (is_underscanning));
          }
  
@@ -2776,7 +3188,7 @@ index 6d9b7f416..93094a21c 100644
        is_builtin = meta_monitor_is_laptop_panel (monitor);
        g_variant_builder_add (&monitor_properties_builder, "{sv}",
                               "is-builtin",
-@@ -2353,6 +2362,8 @@ create_monitor_config_from_variant (MetaMonitorManager *manager,
+@@ -2296,6 +2305,8 @@ create_monitor_config_from_variant (MetaMonitorManager *manager,
    g_autoptr (GVariant) properties_variant = NULL;
    gboolean enable_underscanning = FALSE;
    gboolean set_underscanning = FALSE;
@@ -2785,7 +3197,7 @@ index 6d9b7f416..93094a21c 100644
  
    g_variant_get (monitor_config_variant, "(ss@a{sv})",
                   &connector,
-@@ -2388,6 +2399,19 @@ create_monitor_config_from_variant (MetaMonitorManager *manager,
+@@ -2331,6 +2342,19 @@ create_monitor_config_from_variant (MetaMonitorManager *manager,
          }
      }
  
@@ -2805,7 +3217,7 @@ index 6d9b7f416..93094a21c 100644
    monitor_spec = meta_monitor_spec_clone (meta_monitor_get_spec (monitor));
  
    monitor_mode_spec = g_new0 (MetaMonitorModeSpec, 1);
-@@ -2397,7 +2421,8 @@ create_monitor_config_from_variant (MetaMonitorManager *manager,
+@@ -2340,7 +2364,8 @@ create_monitor_config_from_variant (MetaMonitorManager *manager,
    *monitor_config = (MetaMonitorConfig) {
      .monitor_spec = monitor_spec,
      .mode_spec = monitor_mode_spec,
@@ -2819,37 +3231,37 @@ index 6d9b7f416..93094a21c 100644
 2.36.1
 
 
-From 2b5e75b3f8be15336797400201d9412ca69a9cf5 Mon Sep 17 00:00:00 2001
+From 184d12e2df400f61ee9ea9e930475485c75d49f8 Mon Sep 17 00:00:00 2001
 From: Dor Askayo <dor.askayo@gmail.com>
-Date: Fri, 10 Jun 2022 00:18:00 +0300
-Subject: [PATCH 21/22] renderer-view/native: Allow queuing a variable refresh
- rate mode update
+Date: Fri, 10 Jun 2022 21:12:49 +0300
+Subject: [PATCH 25/25] renderer-view/native: Enable VRR and actor sync when
+ applicable
 
-This allows queuing updates to the VRR mode to be applied as part
-of the preparation phase of the next frame.
+If an actor is tracked for synchronization and VRR is configured to
+be enabled for the output, set the synchronization mode to
+META_FRAME_SYNC_MODE_ENABLED.
+
+If an actor isn't tracked for synchronization or VRR is not configured
+to be enabled for the output, set the synchronization mode to
+META_FRAME_SYNC_MODE_DISABLED.
+
+When the synchronization mode is set to META_FRAME_SYNC_MODE_ENABLED,
+enable the VRR mode on the output, and when it's set to
+META_FRAME_SYNC_MODE_DISABLED, disable it.
+
+Enabling the VRR mode on an output along with synchronizing frame
+clock updates to actor updates on the matching view allows the monitor
+match its refresh rate to the rate at which the actor updates,
+effectively achieving the VRR effect.
 ---
- src/backends/native/meta-renderer-native.c    |  1 +
- .../native/meta-renderer-view-native.c        | 29 +++++++++++++++++++
- .../native/meta-renderer-view-native.h        |  2 ++
- 3 files changed, 32 insertions(+)
+ .../native/meta-renderer-view-native.c        | 27 ++++++++++++++++++-
+ 1 file changed, 26 insertions(+), 1 deletion(-)
 
-diff --git a/src/backends/native/meta-renderer-native.c b/src/backends/native/meta-renderer-native.c
-index fdfe4a35f..50c73997d 100644
---- a/src/backends/native/meta-renderer-native.c
-+++ b/src/backends/native/meta-renderer-native.c
-@@ -1454,6 +1454,7 @@ meta_renderer_native_prepare_frame (MetaRendererNative *renderer_native,
-   kms_device = meta_kms_crtc_get_device (kms_crtc);
- 
-   meta_crtc_kms_maybe_set_gamma (crtc_kms, kms_device);
-+  meta_renderer_view_native_maybe_set_vrr_mode (META_RENDERER_VIEW_NATIVE (view));
- }
- 
- void
 diff --git a/src/backends/native/meta-renderer-view-native.c b/src/backends/native/meta-renderer-view-native.c
-index bef97db05..77558bb55 100644
+index 14f3c543b..28665893b 100644
 --- a/src/backends/native/meta-renderer-view-native.c
 +++ b/src/backends/native/meta-renderer-view-native.c
-@@ -25,11 +25,18 @@
+@@ -25,6 +25,11 @@
  #include "backends/native/meta-renderer-view-native.h"
  
  #include "clutter/clutter.h"
@@ -2859,118 +3271,75 @@ index bef97db05..77558bb55 100644
 +#include "backends/native/meta-kms-device.h"
 +#include "backends/native/meta-output-kms.h"
  
- struct _MetaRendererViewNative
+ typedef enum _MetaFrameSyncMode
  {
-   MetaRendererView parent;
+@@ -115,8 +120,10 @@ meta_renderer_view_native_set_frame_sync_actor (MetaRendererViewNative *view_nat
  
-+  gboolean vrr_mode_update_queued;
-+
-   gboolean frame_sync_active;
-   ClutterActor *frame_sync_actor;
- 
-@@ -115,6 +122,28 @@ meta_renderer_view_native_set_frame_sync_actor (MetaRendererViewNative *view_nat
-   meta_renderer_view_native_update_sync_mode (view_native);
- }
- 
-+void
-+meta_renderer_view_native_maybe_set_vrr_mode (MetaRendererViewNative *view_native)
-+{
-+  MetaRendererView *view = META_RENDERER_VIEW (view_native);
-+  MetaOutput *output = meta_renderer_view_get_output (view);
-+
-+  if (meta_output_is_vrr_enabled (output) &&
-+      view_native->vrr_mode_update_queued)
-+    {
-+      MetaOutputKms *output_kms = META_OUTPUT_KMS (output);
-+      MetaCrtc *crtc = meta_renderer_view_get_crtc (view);
-+      MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (crtc));
-+      MetaKmsDevice *kms_device = meta_kms_crtc_get_device (kms_crtc);
-+      MetaKms *kms = meta_kms_device_get_kms (kms_device);
-+      MetaKmsUpdate *kms_update = meta_kms_ensure_pending_update (kms, kms_device);
-+
-+      meta_output_kms_set_vrr_mode (output_kms, kms_update);
-+
-+      view_native->vrr_mode_update_queued = FALSE;
-+    }
-+}
-+
  static void
- meta_renderer_view_native_dispose (GObject *object)
+ meta_renderer_view_native_set_frame_sync (MetaRendererViewNative *view_native,
++                                          MetaOutput             *output,
+                                           MetaFrameSyncMode       sync_mode)
  {
-diff --git a/src/backends/native/meta-renderer-view-native.h b/src/backends/native/meta-renderer-view-native.h
-index b4ec1ebd8..dc6b15dab 100644
---- a/src/backends/native/meta-renderer-view-native.h
-+++ b/src/backends/native/meta-renderer-view-native.h
-@@ -34,4 +34,6 @@ G_DECLARE_FINAL_TYPE (MetaRendererViewNative, meta_renderer_view_native,
- void meta_renderer_view_native_set_frame_sync_actor (MetaRendererViewNative *view_native,
-                                                      ClutterActor           *actor);
- 
-+void meta_renderer_view_native_maybe_set_vrr_mode (MetaRendererViewNative *view_native);
-+
- #endif /* META_RENDERER_VIEW_NATIVE_H */
--- 
-2.36.1
-
-
-From d9cc12449f6cf51285798fffbfec4fd996799cc6 Mon Sep 17 00:00:00 2001
-From: Dor Askayo <dor.askayo@gmail.com>
-Date: Mon, 17 Aug 2020 21:28:44 +0300
-Subject: [PATCH 22/22] renderer-view/native: Enable variable refresh rate mode
- on actor sync
-
-If actor synchronization is applicable, request to activate VRR for the
-relevant output, set the ClutterFrameClock mode to
-CLUTTER_FRAME_CLOCK_MODE_VARIABLE and activate actor synchronization.
-The combination of the three allows a monitor that supports VRR to
-refresh at the rate by which the actor updates.
-
-If actor synchronization is not applicable, request to deactivate VRR
-for the relevant output, set the ClutterFrameClock mode to
-CLUTTER_FRAME_CLOCK_MODE_FIXED and deactivate actor synchronization.
----
- .../native/meta-renderer-view-native.c        | 28 +++++++++++++++++--
- 1 file changed, 25 insertions(+), 3 deletions(-)
-
-diff --git a/src/backends/native/meta-renderer-view-native.c b/src/backends/native/meta-renderer-view-native.c
-index 77558bb55..ee2730b15 100644
---- a/src/backends/native/meta-renderer-view-native.c
-+++ b/src/backends/native/meta-renderer-view-native.c
-@@ -52,10 +52,32 @@ meta_renderer_view_native_update_sync_mode (MetaRendererViewNative *view_native)
- {
++  MetaOutputKms *output_kms = META_OUTPUT_KMS (output);
    ClutterFrameClock *frame_clock =
      clutter_stage_view_get_frame_clock (CLUTTER_STAGE_VIEW (view_native));
+ 
+@@ -125,10 +132,12 @@ meta_renderer_view_native_set_frame_sync (MetaRendererViewNative *view_native,
+     case META_FRAME_SYNC_MODE_ENABLED:
+       clutter_frame_clock_set_mode (frame_clock,
+                                     CLUTTER_FRAME_CLOCK_MODE_VARIABLE);
++      meta_output_kms_set_vrr_mode (output_kms, TRUE);
+       break;
+     case META_FRAME_SYNC_MODE_DISABLED:
+       clutter_frame_clock_set_mode (frame_clock,
+                                     CLUTTER_FRAME_CLOCK_MODE_FIXED);
++      meta_output_kms_set_vrr_mode (output_kms, FALSE);
+       break;
+     case META_FRAME_SYNC_MODE_INIT:
+       g_assert_not_reached ();
+@@ -140,12 +149,21 @@ meta_renderer_view_native_set_frame_sync (MetaRendererViewNative *view_native,
+ static MetaFrameSyncMode
+ meta_renderer_view_native_get_applicable_sync_mode (MetaRendererViewNative *view_native)
+ {
+-  return META_FRAME_SYNC_MODE_DISABLED;
 +  MetaRendererView *view = META_RENDERER_VIEW (view_native);
 +  MetaOutput *output = meta_renderer_view_get_output (view);
-+  gboolean sync_applicable;
- 
--  clutter_frame_clock_set_mode (frame_clock,
--                                CLUTTER_FRAME_CLOCK_MODE_FIXED);
--  view_native->frame_sync_active = FALSE;
-+  sync_applicable = view_native->frame_sync_actor != NULL;
 +
-+  if (sync_applicable != meta_output_is_vrr_requested (output))
-+    {
-+      meta_output_set_vrr_requested (output, sync_applicable);
-+      view_native->vrr_mode_update_queued = TRUE;
-+    }
-+
-+  if (meta_output_is_vrr_enabled (output) &&
-+      sync_applicable &&
-+      !view_native->frame_sync_active)
-+    {
-+      clutter_frame_clock_set_mode (frame_clock,
-+                                    CLUTTER_FRAME_CLOCK_MODE_VARIABLE);
-+      view_native->frame_sync_active = TRUE;
-+    }
++  if (view_native->frame_sync_actor != NULL &&
++      meta_output_is_vrr_enabled (output))
++    return META_FRAME_SYNC_MODE_ENABLED;
 +  else
-+    {
-+      clutter_frame_clock_set_mode (frame_clock,
-+                                    CLUTTER_FRAME_CLOCK_MODE_FIXED);
-+      view_native->frame_sync_active = FALSE;
-+    }
++    return META_FRAME_SYNC_MODE_DISABLED;
  }
  
- static void
+ void
+ meta_renderer_view_native_maybe_set_frame_sync (MetaRendererViewNative *view_native)
+ {
++  MetaRendererView *view;
++  MetaOutput *output;
+   MetaFrameSyncMode applicable_sync_mode;
+ 
+   if (G_LIKELY (!view_native->frame_sync_mode_update_queued))
+@@ -153,12 +171,19 @@ meta_renderer_view_native_maybe_set_frame_sync (MetaRendererViewNative *view_nat
+ 
+   view_native->frame_sync_mode_update_queued = FALSE;
+ 
++  view = META_RENDERER_VIEW (view_native);
++  output = meta_renderer_view_get_output (view);
++
++  if (!meta_output_is_vrr_capable (output))
++    return;
++
+   applicable_sync_mode =
+     meta_renderer_view_native_get_applicable_sync_mode (view_native);
+ 
+   if (applicable_sync_mode != view_native->frame_sync_mode)
+     {
+       meta_renderer_view_native_set_frame_sync (view_native,
++                                                output,
+                                                 applicable_sync_mode);
+     }
+ }
 -- 
 2.36.1
 
