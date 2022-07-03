@@ -10,7 +10,7 @@
 %global tarball_version %%(echo %{gnome_version} | tr '~' '.')
 
 Name:          mutter
-Version:       %{gnome_version}.vrr.6
+Version:       %{gnome_version}.vrr.7
 Release:       1%{?dist}
 Summary:       Window and compositing manager based on Clutter
 
@@ -27,7 +27,7 @@ Patch1:        0001-Revert-build-Do-not-provide-built-sources-as-libmutt.patch
 # https://bugzilla.redhat.com/show_bug.cgi?id=1936991
 Patch2:        mutter-42.alpha-disable-tegra.patch
 
-# https://gitlab.gnome.org/doraskayo/mutter/-/commits/vrr-support-42
+# https://gitlab.gnome.org/GNOME/mutter/-/merge_requests/1154
 Patch3:        vrr.patch
 
 BuildRequires: pkgconfig(gobject-introspection-1.0) >= 1.41.0
