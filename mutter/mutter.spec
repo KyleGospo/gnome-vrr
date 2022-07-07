@@ -6,11 +6,11 @@
 %global pipewire_version 0.3.0
 %global mutter_api_version 10
 
-%global gnome_version 42.2
+%global gnome_version 42.3
 %global tarball_version %%(echo %{gnome_version} | tr '~' '.')
 
 Name:          mutter
-Version:       %{gnome_version}.vrr.7
+Version:       %{gnome_version}.vrr.8
 Release:       1%{?dist}
 Summary:       Window and compositing manager based on Clutter
 
@@ -173,6 +173,9 @@ desktop-file-validate %{buildroot}/%{_datadir}/applications/%{name}.desktop
 %{_datadir}/mutter-%{mutter_api_version}/tests
 
 %changelog
+* Mon Jul 04 2022 Florian Müllner <fmuellner@redhat.com> - 42.3-1
+- Update to 42.3
+
 * Tue Jun 07 2022 Kyle Gospodnetich <me@kylegospodneti.ch> - 42.2.vrr.1-1
 - Add Dor Askayo's VRR MR
 
