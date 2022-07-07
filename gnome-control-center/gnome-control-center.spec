@@ -9,12 +9,12 @@
 %define libadwaita_version 1.1~alpha
 %define nm_version 1.24
 
-%define gnome_version 42.2
+%define gnome_version 42.3
 %global tarball_version %%(echo %{gnome_version} | tr '~' '.')
 
 Name:           gnome-control-center
 
-Version:        %{gnome_version}.vrr.1
+Version:        %{gnome_version}.vrr.2
 Release:        %autorelease
 Summary:        Utilities to configure the GNOME desktop
 
