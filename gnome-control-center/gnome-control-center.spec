@@ -14,7 +14,7 @@
 
 Name:           gnome-control-center
 
-Version:        %{gnome_version}.vrr.2
+Version:        %{gnome_version}.vrr.3
 Release:        %autorelease
 Summary:        Utilities to configure the GNOME desktop
 
@@ -26,7 +26,7 @@ Source0:        https://download.gnome.org/sources/%{name}/42/%{name}-%{tarball_
 Patch0:         distro-logo.patch
 
 # https://gitlab.gnome.org/doraskayo/gnome-control-center/-/commits/vrr-support-42
-Patch1:         vrr.patch
+Patch1:         0001-display-Add-a-switch-for-variable-refresh-rate.patch
 
 BuildRequires:  desktop-file-utils
 BuildRequires:  docbook-style-xsl libxslt
