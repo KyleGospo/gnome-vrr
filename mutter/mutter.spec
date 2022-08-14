@@ -6,7 +6,7 @@
 %global pipewire_version 0.3.0
 %global mutter_api_version 10
 
-%global gnome_version 42.3
+%global gnome_version 42.4
 %global tarball_version %%(echo %{gnome_version} | tr '~' '.')
 
 Name:          mutter
