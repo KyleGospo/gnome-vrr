@@ -6,11 +6,11 @@
 %global pipewire_version 0.3.0
 %global mutter_api_version 10
 
-%global gnome_version 42.4
+%global gnome_version 42.5
 %global tarball_version %%(echo %{gnome_version} | tr '~' '.')
 
 Name:          mutter
-Version:       %{gnome_version}.vrr.9
+Version:       %{gnome_version}.vrr.10
 Release:       1%{?dist}
 Summary:       Window and compositing manager based on Clutter
 
