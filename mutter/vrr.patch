@@ -3505,7 +3505,7 @@ diff --git a/src/backends/native/meta-output-kms.c b/src/backends/native/meta-ou
 index fb658f29d..6b107dab9 100644
 --- a/src/backends/native/meta-output-kms.c
 +++ b/src/backends/native/meta-output-kms.c
-@@ -97,6 +97,32 @@ meta_output_kms_set_underscan (MetaOutputKms *output_kms,
+@@ -97,6 +97,32 @@
      }
  }
  
@@ -3538,15 +3538,16 @@ index fb658f29d..6b107dab9 100644
  static MetaPrivacyScreenState
  meta_output_kms_get_privacy_screen_state (MetaOutput *output)
  {
-@@ -405,6 +431,8 @@ meta_output_kms_new (MetaGpuKms        *gpu_kms,
-   output_info->supports_underscanning =
-     meta_kms_connector_is_underscanning_supported (kms_connector);
+@@ -438,6 +464,8 @@
+ 
+   meta_output_info_parse_edid (output_info, connector_state->edid_data);
  
 +  output_info->vrr_capable = connector_state->vrr_capable;
 +
-   meta_output_info_parse_edid (output_info, connector_state->edid_data);
+   output_info->tile_info = connector_state->tile_info;
  
-   drm_connector_type = meta_kms_connector_get_connector_type (kms_connector);
+   output = g_object_new (META_TYPE_OUTPUT_KMS,
+
 diff --git a/src/backends/native/meta-output-kms.h b/src/backends/native/meta-output-kms.h
 index 52acc6032..54b1721a4 100644
 --- a/src/backends/native/meta-output-kms.h
