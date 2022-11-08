@@ -12,10 +12,10 @@ diff --git a/src/backends/native/meta-kms-impl-device-atomic.c b/src/backends/na
 index bcb41e8ad..bafbc7b8f 100644
 --- a/src/backends/native/meta-kms-impl-device-atomic.c
 +++ b/src/backends/native/meta-kms-impl-device-atomic.c
-@@ -1159,6 +1159,7 @@ is_atomic_allowed (const char *driver_name)
+@@ -1216,6 +1216,7 @@ is_atomic_allowed (const char *driver_name)
      "vboxvideo",
-     "nvidia-drm",
      "virtio_gpu",
+     "xlnx",
 +    "tegra",
      NULL,
    };
