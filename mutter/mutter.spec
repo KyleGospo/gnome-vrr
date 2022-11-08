@@ -1,22 +1,24 @@
+%global glib_version 2.69.0
 %global gtk3_version 3.19.8
-%global glib_version 2.53.2
 %global gsettings_desktop_schemas_version 40~alpha
 %global json_glib_version 0.12.0
-%global libinput_version 1.4
-%global pipewire_version 0.3.0
-%global mutter_api_version 10
+%global libinput_version 1.19.0
+%global pipewire_version 0.3.33
+%global lcms2_version 2.6
+%global colord_version 1.4.5
+%global mutter_api_version 11
 
-%global gnome_version 42.5
+%global gnome_version 43.1
 %global tarball_version %%(echo %{gnome_version} | tr '~' '.')
 
 Name:          mutter
-Version:       %{gnome_version}.vrr.10
+Version:       %{gnome_version}.vrr.11
 Release:       1%{?dist}
 Summary:       Window and compositing manager based on Clutter
 
 License:       GPLv2+
 URL:           https://www.gnome.org
-Source0:       https://download.gnome.org/sources/%{name}/42/%{name}-%{tarball_version}.tar.xz
+Source0:       https://download.gnome.org/sources/%{name}/43/%{name}-%{tarball_version}.tar.xz
 
 # Work-around for OpenJDK's compliance test
 Patch0:        0001-window-actor-Special-case-shaped-Java-windows.patch
@@ -77,6 +79,8 @@ BuildRequires: pkgconfig(libstartup-notification-1.0)
 BuildRequires: pkgconfig(wayland-eglstream)
 BuildRequires: pkgconfig(wayland-protocols)
 BuildRequires: pkgconfig(wayland-server)
+BuildRequires: pkgconfig(lcms2) >= %{lcms2_version}
+BuildRequires: pkgconfig(colord) >= %{colord_version}
 
 BuildRequires: pkgconfig(json-glib-1.0) >= %{json_glib_version}
 BuildRequires: pkgconfig(libinput) >= %{libinput_version}
@@ -173,17 +177,50 @@ desktop-file-validate %{buildroot}/%{_datadir}/applications/%{name}.desktop
 %{_datadir}/mutter-%{mutter_api_version}/tests
 
 %changelog
-* Mon Jul 04 2022 Florian Müllner <fmuellner@redhat.com> - 42.3-1
-- Update to 42.3
-
-* Tue Jun 07 2022 Kyle Gospodnetich <me@kylegospodneti.ch> - 42.2.vrr.1-1
+* Tue Nov 08 2022 Kyle Gospodnetich <me@kylegospodneti.ch> - 43.1.vrr.10-1
 - Add Dor Askayo's VRR MR
+
+* Fri Nov 04 2022 Florian Müllner <fmuellner@redhat.com> - 43.1-1
+- Update to 43.1
+
+* Tue Nov 01 2022 Jonas Ådahl <jadahl@redhat.com> - 43.0-4
+- Don't crash on garbabe EDID
+  Resolves: #2138453
+
+* Tue Sep 27 2022 Kalev Lember <klember@redhat.com> - 43.0-3
+- Rebuild to fix sysprof-capture symbols leaking into libraries consuming it
+
+* Thu Sep 22 2022 Kalev Lember <klember@redhat.com> - 43.0-2
+- Backport upstream MR2623 to fix night light controls
+- Backport upstream MR2624 to fix maximized windows appearing on all
+  screens (#2128660)
+
+* Sat Sep 17 2022 Florian Müllner <fmuellner@redhat.com> - 43.0-1
+- Update to 43.0
+
+* Sun Sep 04 2022 Florian Müllner <fmuellner@redhat.com> - 43~rc-1
+- Update to 43.rc
+
+* Thu Aug 25 2022 Kalev Lember <klember@redhat.com> - 43~beta-4
+- wayland: Unlink surface listener when freeing token
+
+* Thu Aug 25 2022 Kalev Lember <klember@redhat.com> - 43~beta-3
+- wayland: Ensure to unlink destroy listeners after destruction
+
+* Wed Aug 24 2022 Kalev Lember <klember@redhat.com> - 43~beta-2
+- Backport upstream patch to fix a compositor crash (#2120470)
+
+* Wed Aug 10 2022 Florian Müllner <fmuellner@redhat.com> - 43~beta-1
+- Update to 43.beta
+
+* Fri Jul 22 2022 Fedora Release Engineering <releng@fedoraproject.org> - 43~alpha-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_37_Mass_Rebuild
+
+* Sun Jul 10 2022 Florian Müllner <fmuellner@redhat.com> - 43~alpha-1
+ - Update to 43.alpha
 
 * Sun May 29 2022 Florian Müllner <fmuellner@redhat.com> - 42.2-1
 - Update to 42.2
-
-* Thu May 19 2022 Florian Müllner <fmuellner@redhat.com> - 42.1-2
-- Rebuild for bodhi
 
 * Fri May 06 2022 Florian Müllner <fmuellner@redhat.com> - 42.1-1
 - Update to 42.1

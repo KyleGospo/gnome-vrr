@@ -2971,12 +2971,12 @@ diff --git a/src/backends/native/meta-kms-impl-device-atomic.c b/src/backends/na
 index 73dd8e697..f21740e29 100644
 --- a/src/backends/native/meta-kms-impl-device-atomic.c
 +++ b/src/backends/native/meta-kms-impl-device-atomic.c
-@@ -978,7 +978,7 @@ meta_kms_impl_device_atomic_process_update (MetaKmsImplDevice *impl_device,
+@@ -1001,7 +1001,7 @@
                          &error))
      goto err;
  
--  if (meta_kms_update_get_mode_sets (update))
-+  if (meta_kms_update_needs_allow_modeset (update))
+-  if (meta_kms_update_needs_allow_modeset (update))
++  if (meta_kms_update_get_mode_sets (update))
      commit_flags |= DRM_MODE_ATOMIC_ALLOW_MODESET;
    else
      commit_flags |= DRM_MODE_ATOMIC_NONBLOCK;
@@ -3108,11 +3108,10 @@ diff --git a/src/backends/native/meta-kms-impl-device-atomic.c b/src/backends/na
 index f21740e29..0a26d2780 100644
 --- a/src/backends/native/meta-kms-impl-device-atomic.c
 +++ b/src/backends/native/meta-kms-impl-device-atomic.c
-@@ -261,6 +261,39 @@ add_crtc_property (MetaKmsImplDevice  *impl_device,
-   return TRUE;
+@@ -286,6 +286,39 @@
  }
  
-+static gboolean
+ static gboolean
 +process_crtc_update (MetaKmsImplDevice  *impl_device,
 +                     MetaKmsUpdate      *update,
 +                     drmModeAtomicReq   *req,
@@ -3145,15 +3144,14 @@ index f21740e29..0a26d2780 100644
 +  return TRUE;
 +}
 +
- static gboolean
++static gboolean
  process_mode_set (MetaKmsImplDevice  *impl_device,
                    MetaKmsUpdate      *update,
-@@ -948,6 +981,16 @@ meta_kms_impl_device_atomic_process_update (MetaKmsImplDevice *impl_device,
-                         &error))
-     goto err;
+                   drmModeAtomicReq   *req,
+@@ -963,6 +996,16 @@
  
-+  if (!process_entries (impl_device,
-+                        update,
+   if (!process_entries (impl_device,
+                         update,
 +                        req,
 +                        blob_ids,
 +                        meta_kms_update_get_crtc_updates (update),
@@ -3162,9 +3160,11 @@ index f21740e29..0a26d2780 100644
 +                        &error))
 +    goto err;
 +
-   if (!process_entries (impl_device,
-                         update,
++  if (!process_entries (impl_device,
++                        update,
                          req,
+                         blob_ids,
+                         meta_kms_update_get_connector_updates (update),
 diff --git a/src/backends/native/meta-kms-impl-device-simple.c b/src/backends/native/meta-kms-impl-device-simple.c
 index ca4ffe245..89310ce0f 100644
 --- a/src/backends/native/meta-kms-impl-device-simple.c

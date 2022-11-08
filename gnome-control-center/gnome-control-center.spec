@@ -1,32 +1,28 @@
 %define gnome_online_accounts_version 3.25.3
-%define glib2_version 2.68.0
+%define glib2_version 2.70.0
 %define gnome_desktop_version 42~alpha
 %define gsd_version 41.0
 %define gsettings_desktop_schemas_version 42~alpha
 %define upower_version 0.99.8
 %define gtk4_version 4.4
 %define gnome_bluetooth_version 42~alpha
-%define libadwaita_version 1.1~alpha
+%define libadwaita_version 1.2~alpha
 %define nm_version 1.24
 
-%define gnome_version 42.3
+%define gnome_version 43.1
 %global tarball_version %%(echo %{gnome_version} | tr '~' '.')
 
 Name:           gnome-control-center
-
 Version:        %{gnome_version}.vrr.3
 Release:        %autorelease
 Summary:        Utilities to configure the GNOME desktop
 
 License:        GPLv2+ and CC-BY-SA
 URL:            https://gitlab.gnome.org/GNOME/gnome-control-center/
-Source0:        https://download.gnome.org/sources/%{name}/42/%{name}-%{tarball_version}.tar.xz
-
-# https://gitlab.gnome.org/GNOME/gnome-control-center/-/merge_requests/965
-Patch0:         distro-logo.patch
+Source0:        https://download.gnome.org/sources/%{name}/43/%{name}-%{tarball_version}.tar.xz
 
 # https://gitlab.gnome.org/doraskayo/gnome-control-center/-/commits/vrr-support-42
-Patch1:         vrr.patch
+Patch0:         vrr.patch
 
 BuildRequires:  desktop-file-utils
 BuildRequires:  docbook-style-xsl libxslt
@@ -103,7 +99,7 @@ Requires: glx-utils
 Requires: iso-codes
 # For parental controls support
 Requires: malcontent
-Requires: malcontent-control
+Recommends: malcontent-control
 # For the network panel
 Recommends: NetworkManager-wifi
 Recommends: nm-connection-editor
