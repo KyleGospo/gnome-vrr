@@ -8,7 +8,7 @@
 %global colord_version 1.4.5
 %global mutter_api_version 11
 
-%global gnome_version 43.1
+%global gnome_version 43.2
 %global tarball_version %%(echo %{gnome_version} | tr '~' '.')
 
 Name:          mutter
