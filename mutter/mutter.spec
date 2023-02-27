@@ -12,7 +12,7 @@
 %global tarball_version %%(echo %{gnome_version} | tr '~' '.')
 
 Name:          mutter
-Version:       %{gnome_version}.vrr.11
+Version:       %{gnome_version}.vrr.12
 Release:       1%{?dist}
 Summary:       Window and compositing manager based on Clutter
 

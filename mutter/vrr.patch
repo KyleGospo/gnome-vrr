@@ -1047,35 +1047,6 @@ index 34c37939c..16e3a8d48 100644
 -- 
 2.37.3
 
-
-From 3960bbe6ef1258a2bfb36ec72bbbe6bc7e4d26d9 Mon Sep 17 00:00:00 2001
-From: Dor Askayo <dor.askayo@gmail.com>
-Date: Sun, 16 Aug 2020 20:11:48 +0300
-Subject: [PATCH 06/19] wayland/actor-surface: Schedule actor updates for frame
- callbacks
-
----
- src/wayland/meta-wayland-actor-surface.c | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
-
-diff --git a/src/wayland/meta-wayland-actor-surface.c b/src/wayland/meta-wayland-actor-surface.c
-index 362785c89..779a78b3b 100644
---- a/src/wayland/meta-wayland-actor-surface.c
-+++ b/src/wayland/meta-wayland-actor-surface.c
-@@ -307,7 +307,8 @@ meta_wayland_actor_surface_apply_state (MetaWaylandSurfaceRole  *surface_role,
-       MetaBackend *backend = meta_get_backend ();
-       ClutterActor *stage = meta_backend_get_stage (backend);
- 
--      clutter_stage_schedule_update (CLUTTER_STAGE (stage));
-+      clutter_stage_schedule_actor_update (CLUTTER_STAGE (stage),
-+                                           CLUTTER_ACTOR (priv->actor));
-     }
- 
-   meta_wayland_actor_surface_queue_frame_callbacks (actor_surface, pending);
--- 
-2.37.3
-
-
 From 51c25458ed9a86fb8b5b7e4850af2d1b01cf5808 Mon Sep 17 00:00:00 2001
 From: Dor Askayo <dor.askayo@gmail.com>
 Date: Sun, 16 Aug 2020 10:07:54 +0300
