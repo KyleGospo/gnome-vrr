@@ -12,7 +12,7 @@
 %global tarball_version %%(echo %{gnome_version} | tr '~' '.')
 
 Name:          mutter
-Version:       %{gnome_version}.vrr.12
+Version:       %{gnome_version}.vrr.13
 Release:       1%{?dist}
 Summary:       Window and compositing manager based on Clutter
 
@@ -29,8 +29,11 @@ Patch1:        0001-Revert-build-Do-not-provide-built-sources-as-libmutt.patch
 # https://bugzilla.redhat.com/show_bug.cgi?id=1936991
 Patch2:        mutter-42.alpha-disable-tegra.patch
 
+# https://gitlab.gnome.org/GNOME/mutter/-/merge_requests/2841
+Patch3:        0001-x11-Avoid-updating-focus-on-wayland-compositor.patch
+
 # https://gitlab.gnome.org/GNOME/mutter/-/merge_requests/1154
-Patch3:        vrr.patch
+Patch4:        vrr.patch
 
 BuildRequires: pkgconfig(gobject-introspection-1.0) >= 1.41.0
 BuildRequires: pkgconfig(sm)
