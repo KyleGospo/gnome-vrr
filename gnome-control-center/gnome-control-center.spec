@@ -9,7 +9,7 @@
 %define libadwaita_version 1.2~alpha
 %define nm_version 1.24
 
-%define gnome_version 43.2
+%define gnome_version 43.4.1
 %global tarball_version %%(echo %{gnome_version} | tr '~' '.')
 
 Name:           gnome-control-center
