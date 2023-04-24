@@ -13,7 +13,7 @@ diff --git a/src/compositor/meta-surface-actor.c b/src/compositor/meta-surface-a
 index fcd94b86d..7279d7dd0 100644
 --- a/src/compositor/meta-surface-actor.c
 +++ b/src/compositor/meta-surface-actor.c
-@@ -51,6 +51,7 @@ enum
+@@ -51,6 +51,7 @@
  {
    REPAINT_SCHEDULED,
    SIZE_CHANGED,
@@ -21,7 +21,7 @@ index fcd94b86d..7279d7dd0 100644
  
    LAST_SIGNAL,
  };
-@@ -269,6 +270,13 @@ meta_surface_actor_class_init (MetaSurfaceActorClass *klass)
+@@ -269,6 +270,13 @@
                                          0,
                                          NULL, NULL, NULL,
                                          G_TYPE_NONE, 0);
@@ -35,7 +35,7 @@ index fcd94b86d..7279d7dd0 100644
  }
  
  gboolean
-@@ -594,6 +602,9 @@ meta_surface_actor_set_frozen (MetaSurfaceActor *self,
+@@ -594,6 +602,9 @@
  
    priv->frozen = frozen;
  
@@ -126,16 +126,16 @@ diff --git a/clutter/clutter/clutter-stage-view.h b/clutter/clutter/clutter-stag
 index c8974d00d..65f669c4c 100644
 --- a/clutter/clutter/clutter-stage-view.h
 +++ b/clutter/clutter/clutter-stage-view.h
-@@ -50,6 +50,9 @@ struct _ClutterStageViewClass
-                                        int                          dst_width,
+@@ -51,6 +51,9 @@
                                         int                          dst_height,
                                         cairo_rectangle_int_t       *dst_rect);
-+
+ 
 +  void (* schedule_actor_update) (ClutterStageView *view,
 +                                  ClutterActor     *actor);
++
+   ClutterFrame * (* new_frame) (ClutterStageView *view);
  };
  
- CLUTTER_EXPORT
 diff --git a/clutter/clutter/clutter-stage.c b/clutter/clutter/clutter-stage.c
 index 56919c827..6bbd48e04 100644
 --- a/clutter/clutter/clutter-stage.c
@@ -217,7 +217,7 @@ diff --git a/clutter/clutter/clutter-frame-clock.c b/clutter/clutter/clutter-fra
 index b223b8545..c56b8c31c 100644
 --- a/clutter/clutter/clutter-frame-clock.c
 +++ b/clutter/clutter/clutter-frame-clock.c
-@@ -47,6 +47,8 @@ typedef struct _EstimateQueue
+@@ -37,6 +37,8 @@
  
  #define SYNC_DELAY_FALLBACK_FRACTION 0.875
  
@@ -226,7 +226,7 @@ index b223b8545..c56b8c31c 100644
  typedef struct _ClutterFrameListener
  {
    const ClutterFrameListenerIface *iface;
-@@ -64,6 +66,7 @@ typedef enum _ClutterFrameClockState
+@@ -54,6 +56,7 @@
  {
    CLUTTER_FRAME_CLOCK_STATE_INIT,
    CLUTTER_FRAME_CLOCK_STATE_IDLE,
@@ -234,7 +234,7 @@ index b223b8545..c56b8c31c 100644
    CLUTTER_FRAME_CLOCK_STATE_SCHEDULED,
    CLUTTER_FRAME_CLOCK_STATE_DISPATCHING,
    CLUTTER_FRAME_CLOCK_STATE_PENDING_PRESENTED,
-@@ -75,6 +78,8 @@ struct _ClutterFrameClock
+@@ -65,6 +68,8 @@
  
    float refresh_rate;
    int64_t refresh_interval_us;
@@ -243,7 +243,7 @@ index b223b8545..c56b8c31c 100644
    ClutterFrameListener listener;
  
    GSource *source;
-@@ -82,6 +87,8 @@ struct _ClutterFrameClock
+@@ -72,6 +77,8 @@
    int64_t frame_count;
  
    ClutterFrameClockState state;
@@ -252,7 +252,7 @@ index b223b8545..c56b8c31c 100644
    int64_t last_dispatch_time_us;
    int64_t last_dispatch_lateness_us;
    int64_t last_presentation_time_us;
-@@ -315,6 +322,7 @@ clutter_frame_clock_notify_presented (ClutterFrameClock *frame_clock,
+@@ -379,6 +386,7 @@
      {
      case CLUTTER_FRAME_CLOCK_STATE_INIT:
      case CLUTTER_FRAME_CLOCK_STATE_IDLE:
@@ -260,7 +260,7 @@ index b223b8545..c56b8c31c 100644
      case CLUTTER_FRAME_CLOCK_STATE_SCHEDULED:
        g_warn_if_reached ();
        break;
-@@ -335,6 +343,7 @@ clutter_frame_clock_notify_ready (ClutterFrameClock *frame_clock)
+@@ -399,6 +407,7 @@
      {
      case CLUTTER_FRAME_CLOCK_STATE_INIT:
      case CLUTTER_FRAME_CLOCK_STATE_IDLE:
@@ -268,7 +268,7 @@ index b223b8545..c56b8c31c 100644
      case CLUTTER_FRAME_CLOCK_STATE_SCHEDULED:
        g_warn_if_reached ();
        break;
-@@ -547,6 +556,39 @@ calculate_next_update_time_us (ClutterFrameClock *frame_clock,
+@@ -615,6 +624,39 @@
    *out_next_presentation_time_us = next_presentation_time_us;
  }
  
@@ -308,7 +308,7 @@ index b223b8545..c56b8c31c 100644
  void
  clutter_frame_clock_inhibit (ClutterFrameClock *frame_clock)
  {
-@@ -559,6 +601,7 @@ clutter_frame_clock_inhibit (ClutterFrameClock *frame_clock)
+@@ -627,6 +669,7 @@
          case CLUTTER_FRAME_CLOCK_STATE_INIT:
          case CLUTTER_FRAME_CLOCK_STATE_IDLE:
            break;
@@ -316,34 +316,15 @@ index b223b8545..c56b8c31c 100644
          case CLUTTER_FRAME_CLOCK_STATE_SCHEDULED:
            frame_clock->pending_reschedule = TRUE;
            frame_clock->state = CLUTTER_FRAME_CLOCK_STATE_IDLE;
-@@ -599,6 +642,7 @@ clutter_frame_clock_schedule_update_now (ClutterFrameClock *frame_clock)
+@@ -667,6 +710,7 @@
      {
      case CLUTTER_FRAME_CLOCK_STATE_INIT:
      case CLUTTER_FRAME_CLOCK_STATE_IDLE:
 +    case CLUTTER_FRAME_CLOCK_STATE_IDLE_TIMEOUT:
+     case CLUTTER_FRAME_CLOCK_STATE_SCHEDULED:
        next_update_time_us = g_get_monotonic_time ();
        break;
-     case CLUTTER_FRAME_CLOCK_STATE_SCHEDULED:
-@@ -632,14 +676,12 @@ clutter_frame_clock_schedule_update (ClutterFrameClock *frame_clock)
-     {
-     case CLUTTER_FRAME_CLOCK_STATE_INIT:
-       next_update_time_us = g_get_monotonic_time ();
--      break;
-+      g_source_set_ready_time (frame_clock->source, next_update_time_us);
-+      frame_clock->state = CLUTTER_FRAME_CLOCK_STATE_SCHEDULED;
-+      return;
-     case CLUTTER_FRAME_CLOCK_STATE_IDLE:
--      calculate_next_update_time_us (frame_clock,
--                                     &next_update_time_us,
--                                     &frame_clock->next_presentation_time_us);
--      frame_clock->is_next_presentation_time_valid =
--        (frame_clock->next_presentation_time_us != 0);
-       break;
-+    case CLUTTER_FRAME_CLOCK_STATE_IDLE_TIMEOUT:
-     case CLUTTER_FRAME_CLOCK_STATE_SCHEDULED:
-       return;
-     case CLUTTER_FRAME_CLOCK_STATE_DISPATCHING:
-@@ -648,10 +690,54 @@ clutter_frame_clock_schedule_update (ClutterFrameClock *frame_clock)
+@@ -677,12 +721,54 @@
        return;
      }
  
@@ -367,8 +348,10 @@ index b223b8545..c56b8c31c 100644
 +
    g_warn_if_fail (next_update_time_us != -1);
  
+-  frame_clock->next_update_time_us = next_update_time_us;
    g_source_set_ready_time (frame_clock->source, next_update_time_us);
 -  frame_clock->state = CLUTTER_FRAME_CLOCK_STATE_SCHEDULED;
+-  frame_clock->is_next_presentation_time_valid = FALSE;
 +}
 +
 +void
@@ -398,16 +381,27 @@ index b223b8545..c56b8c31c 100644
 +  maybe_reschedule_update (frame_clock);
  }
  
- static void
-@@ -715,6 +801,7 @@ clutter_frame_clock_dispatch (ClutterFrameClock *frame_clock,
-       g_warn_if_reached ();
-       break;
+ void
+@@ -700,14 +786,12 @@
+     {
+     case CLUTTER_FRAME_CLOCK_STATE_INIT:
+       next_update_time_us = g_get_monotonic_time ();
+-      break;
++      g_source_set_ready_time (frame_clock->source, next_update_time_us);
++      frame_clock->state = CLUTTER_FRAME_CLOCK_STATE_SCHEDULED;
++      return;
      case CLUTTER_FRAME_CLOCK_STATE_IDLE:
+-      calculate_next_update_time_us (frame_clock,
+-                                     &next_update_time_us,
+-                                     &frame_clock->next_presentation_time_us);
+-      frame_clock->is_next_presentation_time_valid =
+-        (frame_clock->next_presentation_time_us != 0);
+       break;
 +    case CLUTTER_FRAME_CLOCK_STATE_IDLE_TIMEOUT:
      case CLUTTER_FRAME_CLOCK_STATE_SCHEDULED:
-       break;
+       return;
      case CLUTTER_FRAME_CLOCK_STATE_DISPATCHING:
-@@ -855,6 +942,10 @@ clutter_frame_clock_new (float                            refresh_rate,
+@@ -940,6 +1024,10 @@
    init_frame_clock_source (frame_clock);
  
    clutter_frame_clock_set_refresh_rate (frame_clock, refresh_rate);
@@ -418,7 +412,7 @@ index b223b8545..c56b8c31c 100644
    frame_clock->vblank_duration_us = vblank_duration_us;
  
    return frame_clock;
-@@ -886,6 +977,7 @@ static void
+@@ -973,6 +1061,7 @@
  clutter_frame_clock_init (ClutterFrameClock *frame_clock)
  {
    frame_clock->state = CLUTTER_FRAME_CLOCK_STATE_INIT;
@@ -454,355 +448,6 @@ index 91e6b3a13..380f56c6b 100644
  CLUTTER_EXPORT
  void clutter_frame_clock_notify_presented (ClutterFrameClock *frame_clock,
                                             ClutterFrameInfo  *frame_info);
--- 
-2.37.3
-
-
-From f95ffbae130c7b0e702ab4290806dd9e85b9787e Mon Sep 17 00:00:00 2001
-From: Dor Askayo <dor.askayo@gmail.com>
-Date: Fri, 10 Jul 2020 18:40:07 +0300
-Subject: [PATCH 04/19] backends/native: Introduce MetaRendererViewNative
-
-MetaRendererViewNative is a MetaRendererView which contains logic
-specific to views of the native backend. It will be used by following
-commits.
-
-In the future, per-view logic from MetaRendererNative can be moved to
-MetaRendererViewNative where it makes more sense to have it.
----
- src/backends/meta-renderer-view.c             | 47 ++++++++++++-------
- src/backends/meta-renderer-view.h             | 11 +++--
- src/backends/native/meta-renderer-native.c    | 34 +++++++-------
- .../native/meta-renderer-view-native.c        | 43 +++++++++++++++++
- .../native/meta-renderer-view-native.h        | 34 ++++++++++++++
- src/meson.build                               |  2 +
- 6 files changed, 136 insertions(+), 35 deletions(-)
- create mode 100644 src/backends/native/meta-renderer-view-native.c
- create mode 100644 src/backends/native/meta-renderer-view-native.h
-
-diff --git a/src/backends/meta-renderer-view.c b/src/backends/meta-renderer-view.c
-index 6064f2c82..e6d67aff1 100644
---- a/src/backends/meta-renderer-view.c
-+++ b/src/backends/meta-renderer-view.c
-@@ -49,28 +49,32 @@ enum
- 
- static GParamSpec *obj_props[PROP_LAST];
- 
--struct _MetaRendererView
-+typedef struct _MetaRendererViewPrivate
- {
--  MetaStageView parent;
--
-   MetaMonitorTransform transform;
- 
-   MetaCrtc *crtc;
--};
-+} MetaRendererViewPrivate;
- 
--G_DEFINE_TYPE (MetaRendererView, meta_renderer_view,
--               META_TYPE_STAGE_VIEW)
-+G_DEFINE_TYPE_WITH_PRIVATE (MetaRendererView, meta_renderer_view,
-+                            META_TYPE_STAGE_VIEW)
- 
- MetaMonitorTransform
- meta_renderer_view_get_transform (MetaRendererView *view)
- {
--  return view->transform;
-+  MetaRendererViewPrivate *priv =
-+    meta_renderer_view_get_instance_private (view);
-+
-+  return priv->transform;
- }
- 
- MetaCrtc *
- meta_renderer_view_get_crtc (MetaRendererView *view)
- {
--  return view->crtc;
-+  MetaRendererViewPrivate *priv =
-+    meta_renderer_view_get_instance_private (view);
-+
-+  return priv->crtc;
- }
- 
- static void
-@@ -78,10 +82,12 @@ meta_renderer_view_get_offscreen_transformation_matrix (ClutterStageView  *view,
-                                                         graphene_matrix_t *matrix)
- {
-   MetaRendererView *renderer_view = META_RENDERER_VIEW (view);
-+  MetaRendererViewPrivate *priv =
-+    meta_renderer_view_get_instance_private (renderer_view);
- 
-   graphene_matrix_init_identity (matrix);
-   meta_monitor_transform_transform_matrix (
--    meta_monitor_transform_invert (renderer_view->transform), matrix);
-+    meta_monitor_transform_invert (priv->transform), matrix);
- }
- 
- static void
-@@ -102,9 +108,11 @@ meta_renderer_view_transform_rect_to_onscreen (ClutterStageView            *view
-                                                cairo_rectangle_int_t       *dst_rect)
- {
-   MetaRendererView *renderer_view = META_RENDERER_VIEW (view);
--
-+  MetaRendererViewPrivate *priv =
-+    meta_renderer_view_get_instance_private (renderer_view);
-+  
-   return meta_rectangle_transform (src_rect,
--                                   renderer_view->transform,
-+                                   priv->transform,
-                                    dst_width,
-                                    dst_height,
-                                    dst_rect);
-@@ -114,10 +122,13 @@ static void
- meta_renderer_view_set_transform (MetaRendererView     *view,
-                                   MetaMonitorTransform  transform)
- {
--  if (view->transform == transform)
-+  MetaRendererViewPrivate *priv =
-+    meta_renderer_view_get_instance_private (view);
-+
-+  if (priv->transform == transform)
-     return;
- 
--  view->transform = transform;
-+  priv->transform = transform;
-   clutter_stage_view_invalidate_offscreen_blit_pipeline (CLUTTER_STAGE_VIEW (view));
- }
- 
-@@ -128,14 +139,16 @@ meta_renderer_view_get_property (GObject    *object,
-                                  GParamSpec *pspec)
- {
-   MetaRendererView *view = META_RENDERER_VIEW (object);
-+  MetaRendererViewPrivate *priv =
-+    meta_renderer_view_get_instance_private (view);
- 
-   switch (prop_id)
-     {
-     case PROP_TRANSFORM:
--      g_value_set_uint (value, view->transform);
-+      g_value_set_uint (value, priv->transform);
-       break;
-     case PROP_CRTC:
--      g_value_set_object (value, view->crtc);
-+      g_value_set_object (value, priv->crtc);
-       break;
-     default:
-       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-@@ -150,6 +163,8 @@ meta_renderer_view_set_property (GObject      *object,
-                                  GParamSpec   *pspec)
- {
-   MetaRendererView *view = META_RENDERER_VIEW (object);
-+  MetaRendererViewPrivate *priv =
-+    meta_renderer_view_get_instance_private (view);
- 
-   switch (prop_id)
-     {
-@@ -157,7 +172,7 @@ meta_renderer_view_set_property (GObject      *object,
-       meta_renderer_view_set_transform (view, g_value_get_uint (value));
-       break;
-     case PROP_CRTC:
--      view->crtc = g_value_get_object (value);
-+      priv->crtc = g_value_get_object (value);
-       break;
-     default:
-       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-diff --git a/src/backends/meta-renderer-view.h b/src/backends/meta-renderer-view.h
-index 3f21c7c48..b6247f38c 100644
---- a/src/backends/meta-renderer-view.h
-+++ b/src/backends/meta-renderer-view.h
-@@ -22,10 +22,15 @@
- #include "backends/meta-stage-impl-private.h"
- #include "backends/meta-stage-view-private.h"
- 
-+struct _MetaRendererViewClass
-+{
-+  MetaStageViewClass parent_class;
-+};
-+
- #define META_TYPE_RENDERER_VIEW (meta_renderer_view_get_type ())
--G_DECLARE_FINAL_TYPE (MetaRendererView, meta_renderer_view,
--                      META, RENDERER_VIEW,
--                      MetaStageView)
-+G_DECLARE_DERIVABLE_TYPE (MetaRendererView, meta_renderer_view,
-+                          META, RENDERER_VIEW,
-+                          MetaStageView)
- 
- MetaMonitorTransform meta_renderer_view_get_transform (MetaRendererView *view);
- 
-diff --git a/src/backends/native/meta-renderer-native.c b/src/backends/native/meta-renderer-native.c
-index 99fbb2bb6..4c3d70c86 100644
---- a/src/backends/native/meta-renderer-native.c
-+++ b/src/backends/native/meta-renderer-native.c
-@@ -62,6 +62,7 @@
- #include "backends/native/meta-render-device-gbm.h"
- #include "backends/native/meta-render-device-surfaceless.h"
- #include "backends/native/meta-renderer-native-private.h"
-+#include "backends/native/meta-renderer-view-native.h"
- #include "cogl/cogl.h"
- #include "core/boxes-private.h"
- 
-@@ -1256,7 +1257,7 @@ meta_renderer_native_create_view (MetaRenderer       *renderer,
-   int onscreen_width;
-   int onscreen_height;
-   MetaRectangle view_layout;
--  MetaRendererView *view;
-+  MetaRendererViewNative *view_native;
-   EGLSurface egl_surface;
-   GError *error = NULL;
- 
-@@ -1368,26 +1369,27 @@ meta_renderer_native_create_view (MetaRenderer       *renderer,
-   meta_rectangle_from_graphene_rect (&crtc_config->layout,
-                                      META_ROUNDING_STRATEGY_ROUND,
-                                      &view_layout);
--  view = g_object_new (META_TYPE_RENDERER_VIEW,
--                       "name", meta_output_get_name (output),
--                       "stage", meta_backend_get_stage (backend),
--                       "layout", &view_layout,
--                       "crtc", crtc,
--                       "scale", scale,
--                       "framebuffer", framebuffer,
--                       "offscreen", offscreen,
--                       "use-shadowfb", use_shadowfb,
--                       "transform", view_transform,
--                       "refresh-rate", crtc_mode_info->refresh_rate,
--                       "vblank-duration-us", crtc_mode_info->vblank_duration_us,
--                       NULL);
-+  view_native = g_object_new (META_TYPE_RENDERER_VIEW_NATIVE,
-+                              "name", meta_output_get_name (output),
-+                              "stage", meta_backend_get_stage (backend),
-+                              "layout", &view_layout,
-+                              "crtc", crtc,
-+                              "scale", scale,
-+                              "framebuffer", framebuffer,
-+                              "offscreen", offscreen,
-+                              "use-shadowfb", use_shadowfb,
-+                              "transform", view_transform,
-+                              "refresh-rate", crtc_mode_info->refresh_rate,
-+                              "vblank-duration-us", crtc_mode_info->vblank_duration_us,
-+                              NULL);
- 
-   if (META_IS_ONSCREEN_NATIVE (framebuffer))
-     {
-       CoglDisplayEGL *cogl_display_egl;
-       CoglOnscreenEgl *onscreen_egl;
- 
--      meta_onscreen_native_set_view (COGL_ONSCREEN (framebuffer), view);
-+      meta_onscreen_native_set_view (COGL_ONSCREEN (framebuffer),
-+                                     META_RENDERER_VIEW (view_native));
- 
-       /* Ensure we don't point to stale surfaces when creating the offscreen */
-       cogl_display_egl = cogl_display->winsys;
-@@ -1399,7 +1401,7 @@ meta_renderer_native_create_view (MetaRenderer       *renderer,
-                                      cogl_display_egl->egl_context);
-     }
- 
--  return view;
-+  return META_RENDERER_VIEW (view_native);
- }
- 
- static void
-diff --git a/src/backends/native/meta-renderer-view-native.c b/src/backends/native/meta-renderer-view-native.c
-new file mode 100644
-index 000000000..e64a1476a
---- /dev/null
-+++ b/src/backends/native/meta-renderer-view-native.c
-@@ -0,0 +1,43 @@
-+/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
-+
-+/*
-+ * Copyright (C) 2020-2022 Dor Askayo
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public License as
-+ * published by the Free Software Foundation; either version 2 of the
-+ * License, or (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful, but
-+ * WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+ * General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
-+ * 02111-1307, USA.
-+ *
-+ * Written by:
-+ *     Dor Askayo <dor.askayo@gmail.com>
-+ */
-+
-+#include "backends/native/meta-renderer-view-native.h"
-+
-+struct _MetaRendererViewNative
-+{
-+  MetaRendererView parent;
-+};
-+
-+G_DEFINE_TYPE (MetaRendererViewNative, meta_renderer_view_native,
-+               META_TYPE_RENDERER_VIEW)
-+
-+static void
-+meta_renderer_view_native_class_init (MetaRendererViewNativeClass *klass)
-+{
-+}
-+
-+static void
-+meta_renderer_view_native_init (MetaRendererViewNative *view_native)
-+{
-+}
-diff --git a/src/backends/native/meta-renderer-view-native.h b/src/backends/native/meta-renderer-view-native.h
-new file mode 100644
-index 000000000..34c37939c
---- /dev/null
-+++ b/src/backends/native/meta-renderer-view-native.h
-@@ -0,0 +1,34 @@
-+/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
-+
-+/*
-+ * Copyright (C) 2020-2022 Dor Askayo
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public License as
-+ * published by the Free Software Foundation; either version 2 of the
-+ * License, or (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful, but
-+ * WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+ * General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
-+ * 02111-1307, USA.
-+ *
-+ * Written by:
-+ *     Dor Askayo <dor.askayo@gmail.com>
-+ */
-+
-+#ifndef META_RENDERER_VIEW_NATIVE_H
-+#define META_RENDERER_VIEW_NATIVE_H
-+
-+#include "backends/meta-renderer-view.h"
-+
-+#define META_TYPE_RENDERER_VIEW_NATIVE (meta_renderer_view_native_get_type ())
-+G_DECLARE_FINAL_TYPE (MetaRendererViewNative, meta_renderer_view_native,
-+                      META, RENDERER_VIEW_NATIVE, MetaRendererView)
-+
-+#endif /* META_RENDERER_VIEW_NATIVE_H */
-diff --git a/src/meson.build b/src/meson.build
-index f4d5c78df..017985b76 100644
---- a/src/meson.build
-+++ b/src/meson.build
-@@ -797,6 +797,8 @@ if have_native_backend
-     'backends/native/meta-renderer-native-private.h',
-     'backends/native/meta-renderer-native.c',
-     'backends/native/meta-renderer-native.h',
-+    'backends/native/meta-renderer-view-native.c',
-+    'backends/native/meta-renderer-view-native.h',
-     'backends/native/meta-seat-impl.c',
-     'backends/native/meta-seat-impl.h',
-     'backends/native/meta-seat-native.c',
 -- 
 2.37.3
 
@@ -845,10 +490,11 @@ diff --git a/src/backends/native/meta-renderer-native.c b/src/backends/native/me
 index 4c3d70c86..f89b9c63f 100644
 --- a/src/backends/native/meta-renderer-native.c
 +++ b/src/backends/native/meta-renderer-native.c
-@@ -1469,6 +1469,7 @@ meta_renderer_native_prepare_frame (MetaRendererNative *renderer_native,
-   kms_device = meta_kms_crtc_get_device (kms_crtc);
+@@ -1534,6 +1535,8 @@
  
-   meta_crtc_kms_maybe_set_gamma (crtc_kms, kms_device);
+       meta_onscreen_native_prepare_frame (onscreen, frame);
+     }
++
 +  meta_renderer_view_native_maybe_set_frame_sync (META_RENDERER_VIEW_NATIVE (view));
  }
  
@@ -857,9 +503,9 @@ diff --git a/src/backends/native/meta-renderer-view-native.c b/src/backends/nati
 index e64a1476a..c2b38e980 100644
 --- a/src/backends/native/meta-renderer-view-native.c
 +++ b/src/backends/native/meta-renderer-view-native.c
-@@ -24,20 +24,172 @@
+@@ -26,14 +26,158 @@
  
- #include "backends/native/meta-renderer-view-native.h"
+ #include "backends/native/meta-frame-native.h"
  
 +#include "clutter/clutter.h"
 +
@@ -1013,14 +659,20 @@ index e64a1476a..c2b38e980 100644
 +  G_OBJECT_CLASS (meta_renderer_view_native_parent_class)->dispose (object);
 +}
 +
+ static ClutterFrame *
+ meta_renderer_view_native_new_frame (ClutterStageView *stage_view)
+ {
+@@ -43,12 +187,17 @@
  static void
  meta_renderer_view_native_class_init (MetaRendererViewNativeClass *klass)
  {
+-  ClutterStageViewClass *stage_view_class = CLUTTER_STAGE_VIEW_CLASS (klass);
 +  GObjectClass *object_class = G_OBJECT_CLASS (klass);
 +  ClutterStageViewClass *clutter_stage_view_class = CLUTTER_STAGE_VIEW_CLASS (klass);
 +
 +  object_class->dispose = meta_renderer_view_native_dispose;
-+
+ 
+-  stage_view_class->new_frame = meta_renderer_view_native_new_frame;
 +  clutter_stage_view_class->schedule_actor_update = meta_renderer_view_native_schedule_actor_update;
  }
  
@@ -1353,19 +1005,20 @@ diff --git a/src/backends/native/meta-kms-connector-private.h b/src/backends/nat
 index 73757a8fc..633421ca0 100644
 --- a/src/backends/native/meta-kms-connector-private.h
 +++ b/src/backends/native/meta-kms-connector-private.h
-@@ -40,6 +40,7 @@ typedef enum _MetaKmsConnectorProp
+@@ -40,6 +40,7 @@
    META_KMS_CONNECTOR_PROP_PANEL_ORIENTATION,
    META_KMS_CONNECTOR_PROP_NON_DESKTOP,
    META_KMS_CONNECTOR_PROP_MAX_BPC,
 +  META_KMS_CONNECTOR_PROP_VRR_CAPABLE,
+   META_KMS_CONNECTOR_PROP_COLORSPACE,
+   META_KMS_CONNECTOR_PROP_HDR_OUTPUT_METADATA,
    META_KMS_CONNECTOR_N_PROPS
- } MetaKmsConnectorProp;
  
 diff --git a/src/backends/native/meta-kms-connector.c b/src/backends/native/meta-kms-connector.c
 index 2bc337291..97971cf77 100644
 --- a/src/backends/native/meta-kms-connector.c
 +++ b/src/backends/native/meta-kms-connector.c
-@@ -322,6 +322,10 @@ state_set_properties (MetaKmsConnectorState *state,
+@@ -394,6 +394,10 @@
    if (prop->prop_id)
      set_privacy_screen (state, connector, prop);
  
@@ -1376,7 +1029,7 @@ index 2bc337291..97971cf77 100644
    prop = &props[META_KMS_CONNECTOR_PROP_MAX_BPC];
    if (prop->prop_id)
      {
-@@ -548,6 +552,7 @@ meta_kms_connector_state_new (void)
+@@ -842,6 +846,7 @@
    state = g_new0 (MetaKmsConnectorState, 1);
    state->suggested_x = -1;
    state->suggested_y = -1;
@@ -1384,24 +1037,17 @@ index 2bc337291..97971cf77 100644
  
    return state;
  }
-@@ -642,12 +647,15 @@ meta_kms_connector_state_changes (MetaKmsConnectorState *state,
- 
-   if (!kms_modes_equal (state->modes, new_state->modes))
-     return META_KMS_RESOURCE_CHANGE_FULL;
--
-+  
-   if (state->max_bpc.value != new_state->max_bpc.value ||
-       state->max_bpc.min_value != new_state->max_bpc.min_value ||
+@@ -1006,6 +1011,9 @@
        state->max_bpc.max_value != new_state->max_bpc.max_value)
      return META_KMS_RESOURCE_CHANGE_FULL;
  
 +  if (state->vrr_capable != new_state->vrr_capable)
 +    return META_KMS_RESOURCE_CHANGE_FULL;
 +
-   if (state->privacy_screen_state != new_state->privacy_screen_state)
-     return META_KMS_RESOURCE_CHANGE_PRIVACY_SCREEN;
- 
-@@ -966,6 +974,11 @@ init_properties (MetaKmsConnector  *connector,
+   if (state->colorspace.value != new_state->colorspace.value ||
+       state->colorspace.supported != new_state->colorspace.supported)
+     return META_KMS_RESOURCE_CHANGE_FULL;
+@@ -1341,6 +1349,11 @@
            .name = "non-desktop",
            .type = DRM_MODE_PROP_RANGE,
          },
@@ -1417,14 +1063,14 @@ diff --git a/src/backends/native/meta-kms-connector.h b/src/backends/native/meta
 index bbd59d342..810d485d5 100644
 --- a/src/backends/native/meta-kms-connector.h
 +++ b/src/backends/native/meta-kms-connector.h
-@@ -61,6 +61,7 @@ typedef struct _MetaKmsConnectorState
+@@ -61,6 +61,7 @@
    MetaMonitorTransform panel_orientation_transform;
  
    MetaKmsRange max_bpc;
 +  gboolean vrr_capable;
- } MetaKmsConnectorState;
  
- META_EXPORT_TEST
+   struct {
+     MetaOutputColorspace value;
 -- 
 2.37.3
 
@@ -1445,11 +1091,11 @@ diff --git a/src/backends/native/meta-kms-impl-device-atomic.c b/src/backends/na
 index e938e4522..5e12bb1ee 100644
 --- a/src/backends/native/meta-kms-impl-device-atomic.c
 +++ b/src/backends/native/meta-kms-impl-device-atomic.c
-@@ -1001,7 +1001,7 @@ meta_kms_impl_device_atomic_process_update (MetaKmsImplDevice *impl_device,
+@@ -1017,7 +1017,7 @@
                          &error))
      goto err;
  
--  if (meta_kms_update_get_mode_sets (update))
+-  if (meta_kms_update_get_needs_modeset (update))
 +  if (meta_kms_update_needs_allow_modeset (update))
      commit_flags |= DRM_MODE_ATOMIC_ALLOW_MODESET;
    else
@@ -1472,16 +1118,15 @@ diff --git a/src/backends/native/meta-kms-update.c b/src/backends/native/meta-km
 index 4c34000ef..642aaacc0 100644
 --- a/src/backends/native/meta-kms-update.c
 +++ b/src/backends/native/meta-kms-update.c
-@@ -40,6 +40,8 @@ struct _MetaKmsUpdate
-   GList *connector_updates;
-   GList *crtc_gammas;
+@@ -47,6 +47,7 @@
+   GList *result_listeners;
  
+   gboolean needs_modeset;
 +  gboolean needs_allow_modeset;
-+
-   MetaKmsCustomPageFlip *custom_page_flip;
  
-   GList *page_flip_listeners;
-@@ -284,6 +286,8 @@ meta_kms_update_mode_set (MetaKmsUpdate *update,
+   MetaKmsImplDevice *impl_device;
+ };
+@@ -321,6 +322,8 @@
    };
  
    update->mode_sets = g_list_prepend (update->mode_sets, mode_set);
@@ -1490,8 +1135,8 @@ index 4c34000ef..642aaacc0 100644
  }
  
  static MetaKmsConnectorUpdate *
-@@ -655,6 +659,12 @@ meta_kms_update_get_crtc_gammas (MetaKmsUpdate *update)
-   return update->crtc_gammas;
+@@ -1006,6 +1009,12 @@
+   return update->needs_modeset || update->mode_sets;
  }
  
 +gboolean
@@ -1500,17 +1145,18 @@ index 4c34000ef..642aaacc0 100644
 +  return update->needs_allow_modeset;
 +}
 +
- void
- meta_kms_update_lock (MetaKmsUpdate *update)
+ MetaKmsUpdate *
+ meta_kms_update_new (MetaKmsDevice *device)
  {
-@@ -706,6 +716,7 @@ meta_kms_update_new (MetaKmsDevice *device)
+@@ -1014,6 +1023,8 @@
    update = g_new0 (MetaKmsUpdate, 1);
    update->device = device;
-   update->sequence_number = sequence_number++;
-+  update->needs_allow_modeset = FALSE;
  
++  update->needs_allow_modeset = FALSE;
++
    return update;
  }
+ 
 -- 
 2.37.3
 
@@ -1540,10 +1186,10 @@ diff --git a/src/backends/native/meta-kms-crtc-private.h b/src/backends/native/m
 index baf5f4099..8ddeb3271 100644
 --- a/src/backends/native/meta-kms-crtc-private.h
 +++ b/src/backends/native/meta-kms-crtc-private.h
-@@ -30,9 +30,17 @@ typedef enum _MetaKmsCrtcProp
-   META_KMS_CRTC_PROP_MODE_ID = 0,
+@@ -31,9 +31,17 @@
    META_KMS_CRTC_PROP_ACTIVE,
    META_KMS_CRTC_PROP_GAMMA_LUT,
+   META_KMS_CRTC_PROP_GAMMA_LUT_SIZE,
 +  META_KMS_CRTC_PROP_VRR_ENABLED,
    META_KMS_CRTC_N_PROPS
  } MetaKmsCrtcProp;
@@ -1562,9 +1208,9 @@ diff --git a/src/backends/native/meta-kms-crtc.c b/src/backends/native/meta-kms-
 index ee9e19d2d..caff9aaef 100644
 --- a/src/backends/native/meta-kms-crtc.c
 +++ b/src/backends/native/meta-kms-crtc.c
-@@ -365,6 +365,11 @@ init_properties (MetaKmsCrtc       *crtc,
-           .name = "GAMMA_LUT",
-           .type = DRM_MODE_PROP_BLOB,
+@@ -430,6 +430,11 @@
+           .name = "GAMMA_LUT_SIZE",
+           .type = DRM_MODE_PROP_RANGE,
          },
 +      [META_KMS_CRTC_PROP_VRR_ENABLED] =
 +        {
@@ -1773,16 +1419,16 @@ diff --git a/src/backends/native/meta-kms-update.c b/src/backends/native/meta-km
 index 642aaacc0..5bdf499f9 100644
 --- a/src/backends/native/meta-kms-update.c
 +++ b/src/backends/native/meta-kms-update.c
-@@ -38,6 +38,7 @@ struct _MetaKmsUpdate
+@@ -39,6 +39,7 @@
    GList *mode_sets;
    GList *plane_assignments;
    GList *connector_updates;
 +  GList *crtc_updates;
-   GList *crtc_gammas;
+   GList *crtc_color_updates;
  
-   gboolean needs_allow_modeset;
-@@ -422,6 +423,45 @@ meta_kms_update_set_crtc_gamma (MetaKmsUpdate  *update,
-   update->crtc_gammas = g_list_prepend (update->crtc_gammas, gamma);
+   MetaKmsCustomPageFlip *custom_page_flip;
+@@ -492,6 +496,45 @@
+     g_clear_pointer (&color_update->gamma.state, meta_gamma_lut_free);
  }
  
 +static MetaKmsCrtcUpdate *
@@ -1827,25 +1473,26 @@ index 642aaacc0..5bdf499f9 100644
  void
  meta_kms_update_add_page_flip_listener (MetaKmsUpdate                       *update,
                                          MetaKmsCrtc                         *crtc,
-@@ -653,6 +693,12 @@ meta_kms_update_get_connector_updates (MetaKmsUpdate *update)
-   return update->connector_updates;
+@@ -692,6 +735,12 @@
  }
  
-+GList *
+ GList *
 +meta_kms_update_get_crtc_updates (MetaKmsUpdate *update)
 +{
 +  return update->crtc_updates;
 +}
 +
- GList *
- meta_kms_update_get_crtc_gammas (MetaKmsUpdate *update)
++GList *
+ meta_kms_update_get_crtc_color_updates (MetaKmsUpdate *update)
  {
-@@ -733,6 +779,7 @@ meta_kms_update_free (MetaKmsUpdate *update)
+   return update->crtc_color_updates;
+@@ -1032,6 +1089,7 @@
    g_list_free_full (update->page_flip_listeners,
-                     (GDestroyNotify) meta_kms_page_flip_listener_free);
+                     (GDestroyNotify) meta_kms_page_flip_listener_unref);
    g_list_free_full (update->connector_updates, g_free);
 +  g_list_free_full (update->crtc_updates, g_free);
-   g_list_free_full (update->crtc_gammas, (GDestroyNotify) meta_kms_crtc_gamma_free);
+   g_list_free_full (update->crtc_color_updates,
+                     (GDestroyNotify) meta_kms_crtc_color_updates_free);
    g_clear_pointer (&update->custom_page_flip, meta_kms_custom_page_flip_free);
  
 diff --git a/src/backends/native/meta-kms-update.h b/src/backends/native/meta-kms-update.h
@@ -2843,11 +2490,10 @@ diff --git a/src/tests/monitor-unit-tests.c b/src/tests/monitor-unit-tests.c
 index b9454f28b..224828217 100644
 --- a/src/tests/monitor-unit-tests.c
 +++ b/src/tests/monitor-unit-tests.c
-@@ -3281,6 +3281,100 @@ meta_test_monitor_underscanning_config (void)
-   check_monitor_test_clients_state ();
+@@ -3255,6 +3255,100 @@
  }
  
-+static void
+ static void
 +meta_test_monitor_vrr_allowed_config (void)
 +{
 +  MonitorTestCase test_case = {
@@ -2941,14 +2587,14 @@ index b9454f28b..224828217 100644
 +  check_monitor_test_clients_state ();
 +}
 +
- static void
++static void
  meta_test_monitor_max_bpc_config (void)
  {
-@@ -5876,6 +5970,102 @@ meta_test_monitor_custom_underscanning_config (void)
-   check_monitor_test_clients_state ();
+   MonitorTestCase test_case = {
+@@ -5840,6 +5934,102 @@
  }
  
-+static void
+ static void
 +meta_test_monitor_custom_vrr_allowed_config (void)
 +{
 +  MonitorTestCase test_case = {
@@ -3044,10 +2690,11 @@ index b9454f28b..224828217 100644
 +  check_monitor_test_clients_state ();
 +}
 +
- static void
++static void
  meta_test_monitor_custom_scale_config (void)
  {
-@@ -9503,6 +9693,8 @@ init_monitor_tests (void)
+   MonitorTestCase test_case = {
+@@ -9624,6 +9814,8 @@
                      meta_test_monitor_no_outputs);
    add_monitor_test ("/backends/monitor/underscanning-config",
                      meta_test_monitor_underscanning_config);
@@ -3056,7 +2703,7 @@ index b9454f28b..224828217 100644
    add_monitor_test ("/backends/monitor/max-bpc-config",
                      meta_test_monitor_max_bpc_config);
    add_monitor_test ("/backends/monitor/preferred-non-first-mode",
-@@ -9537,6 +9729,8 @@ init_monitor_tests (void)
+@@ -9658,6 +9850,8 @@
                      meta_test_monitor_custom_primary_config);
    add_monitor_test ("/backends/monitor/custom/underscanning-config",
                      meta_test_monitor_custom_underscanning_config);
@@ -3095,7 +2742,7 @@ index e6d67aff1..c5412320f 100644
  #include "backends/meta-renderer.h"
  #include "clutter/clutter-mutter.h"
  #include "compositor/region-utils.h"
-@@ -43,6 +44,7 @@ enum
+@@ -43,6 +44,7 @@
  
    PROP_TRANSFORM,
    PROP_CRTC,
@@ -3103,7 +2750,7 @@ index e6d67aff1..c5412320f 100644
  
    PROP_LAST
  };
-@@ -54,6 +56,7 @@ typedef struct _MetaRendererViewPrivate
+@@ -54,6 +56,7 @@
    MetaMonitorTransform transform;
  
    MetaCrtc *crtc;
@@ -3111,7 +2758,7 @@ index e6d67aff1..c5412320f 100644
  } MetaRendererViewPrivate;
  
  G_DEFINE_TYPE_WITH_PRIVATE (MetaRendererView, meta_renderer_view,
-@@ -77,6 +80,15 @@ meta_renderer_view_get_crtc (MetaRendererView *view)
+@@ -77,6 +80,15 @@
    return priv->crtc;
  }
  
@@ -3127,7 +2774,7 @@ index e6d67aff1..c5412320f 100644
  static void
  meta_renderer_view_get_offscreen_transformation_matrix (ClutterStageView  *view,
                                                          graphene_matrix_t *matrix)
-@@ -150,6 +162,9 @@ meta_renderer_view_get_property (GObject    *object,
+@@ -151,6 +163,9 @@
      case PROP_CRTC:
        g_value_set_object (value, priv->crtc);
        break;
@@ -3137,7 +2784,7 @@ index e6d67aff1..c5412320f 100644
      default:
        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
        break;
-@@ -174,6 +189,9 @@ meta_renderer_view_set_property (GObject      *object,
+@@ -175,6 +190,9 @@
      case PROP_CRTC:
        priv->crtc = g_value_get_object (value);
        break;
@@ -3147,10 +2794,11 @@ index e6d67aff1..c5412320f 100644
      default:
        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
        break;
-@@ -221,5 +239,14 @@ meta_renderer_view_class_init (MetaRendererViewClass *klass)
+@@ -221,6 +239,15 @@
+                          G_PARAM_READWRITE |
                           G_PARAM_CONSTRUCT_ONLY |
                           G_PARAM_STATIC_STRINGS);
- 
++
 +  obj_props[PROP_OUTPUT] =
 +    g_param_spec_object ("output",
 +                         "MetaOutput",
@@ -3159,15 +2807,15 @@ index e6d67aff1..c5412320f 100644
 +                         G_PARAM_READWRITE |
 +                         G_PARAM_CONSTRUCT_ONLY |
 +                         G_PARAM_STATIC_STRINGS);
-+
+ 
    g_object_class_install_properties (object_class, PROP_LAST, obj_props);
  }
 diff --git a/src/backends/meta-renderer-view.h b/src/backends/meta-renderer-view.h
 index b6247f38c..355e75e96 100644
 --- a/src/backends/meta-renderer-view.h
 +++ b/src/backends/meta-renderer-view.h
-@@ -36,4 +36,6 @@ MetaMonitorTransform meta_renderer_view_get_transform (MetaRendererView *view);
- 
+@@ -38,4 +38,6 @@
+ META_EXPORT_TEST
  MetaCrtc *meta_renderer_view_get_crtc (MetaRendererView *view);
  
 +MetaOutput *meta_renderer_view_get_output (MetaRendererView *view);
@@ -3177,7 +2825,7 @@ diff --git a/src/backends/native/meta-renderer-native.c b/src/backends/native/me
 index f89b9c63f..6e81a82dc 100644
 --- a/src/backends/native/meta-renderer-native.c
 +++ b/src/backends/native/meta-renderer-native.c
-@@ -1374,6 +1374,7 @@ meta_renderer_native_create_view (MetaRenderer       *renderer,
+@@ -1421,6 +1421,7 @@
                                "stage", meta_backend_get_stage (backend),
                                "layout", &view_layout,
                                "crtc", crtc,
@@ -3189,7 +2837,7 @@ diff --git a/src/backends/x11/nested/meta-renderer-x11-nested.c b/src/backends/x
 index 7c1a4facf..2f9eca5ba 100644
 --- a/src/backends/x11/nested/meta-renderer-x11-nested.c
 +++ b/src/backends/x11/nested/meta-renderer-x11-nested.c
-@@ -223,6 +223,7 @@ meta_renderer_x11_nested_create_view (MetaRenderer       *renderer,
+@@ -223,6 +223,7 @@
                         "stage", meta_backend_get_stage (backend),
                         "layout", &view_layout,
                         "crtc", crtc,

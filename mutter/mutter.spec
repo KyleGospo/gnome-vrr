@@ -1,18 +1,19 @@
-%global glib_version 2.69.0
+%global glib_version 2.75.1
 %global gtk3_version 3.19.8
+%global gtk4_version 4.0.0
 %global gsettings_desktop_schemas_version 40~alpha
 %global json_glib_version 0.12.0
 %global libinput_version 1.19.0
 %global pipewire_version 0.3.33
 %global lcms2_version 2.6
 %global colord_version 1.4.5
-%global mutter_api_version 11
+%global mutter_api_version 12
 
-%global gnome_version 43.3
+%global gnome_version 44.0
 %global tarball_version %%(echo %{gnome_version} | tr '~' '.')
 
 Name:          mutter
-Version:       %{gnome_version}.vrr.13
+Version:       %{gnome_version}.vrr.14
 Release:       1%{?dist}
 Summary:       Window and compositing manager based on Clutter
 
@@ -29,11 +30,17 @@ Patch1:        0001-Revert-build-Do-not-provide-built-sources-as-libmutt.patch
 # https://bugzilla.redhat.com/show_bug.cgi?id=1936991
 Patch2:        mutter-42.alpha-disable-tegra.patch
 
-# https://gitlab.gnome.org/GNOME/mutter/-/merge_requests/2841
-Patch3:        0001-x11-Avoid-updating-focus-on-wayland-compositor.patch
+# https://pagure.io/fedora-workstation/issue/79
+Patch3:        0001-place-Always-center-initial-setup-fedora-welcome.patch
+
+# https://bugzilla.redhat.com/show_bug.cgi?id=2187831
+# https://gitlab.gnome.org/GNOME/mutter/-/issues/2727
+# https://gitlab.gnome.org/GNOME/mutter/-/merge_requests/2954
+# Fix click-to-raise on X.org windows
+Patch4:        2954.patch
 
 # https://gitlab.gnome.org/GNOME/mutter/-/merge_requests/1154
-Patch4:        vrr.patch
+Patch5:        vrr.patch
 
 BuildRequires: pkgconfig(gobject-introspection-1.0) >= 1.41.0
 BuildRequires: pkgconfig(sm)
