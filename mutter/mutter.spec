@@ -9,7 +9,8 @@
 %global colord_version 1.4.5
 %global mutter_api_version 12
 
-%global gnome_version 44.0
+%global gnome_major_version 44
+%global gnome_version %{gnome_major_version}.0
 %global tarball_version %%(echo %{gnome_version} | tr '~' '.')
 
 Name:          mutter
@@ -19,7 +20,7 @@ Summary:       Window and compositing manager based on Clutter
 
 License:       GPLv2+
 URL:           https://www.gnome.org
-Source0:       https://download.gnome.org/sources/%{name}/43/%{name}-%{tarball_version}.tar.xz
+Source0:       https://download.gnome.org/sources/%{name}/%{gnome_major_version}/%{name}-%{tarball_version}.tar.xz
 
 # Work-around for OpenJDK's compliance test
 Patch0:        0001-window-actor-Special-case-shaped-Java-windows.patch
