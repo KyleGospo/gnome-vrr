@@ -9,7 +9,8 @@
 %define libadwaita_version 1.2~alpha
 %define nm_version 1.24
 
-%define gnome_version 44.2
+%global gnome_major_version 44
+%global gnome_version %{gnome_major_version}.2
 %global tarball_version %%(echo %{gnome_version} | tr '~' '.')
 
 Name:           gnome-control-center
@@ -19,7 +20,7 @@ Summary:        Utilities to configure the GNOME desktop
 
 License:        GPLv2+ and CC-BY-SA
 URL:            https://gitlab.gnome.org/GNOME/gnome-control-center/
-Source0:        https://download.gnome.org/sources/%{name}/43/%{name}-%{tarball_version}.tar.xz
+Source0:        https://download.gnome.org/sources/%{name}/%{gnome_major_version}/%{name}-%{tarball_version}.tar.xz
 
 # https://gitlab.gnome.org/doraskayo/gnome-control-center/-/commits/vrr-support-42
 Patch0:         734.patch

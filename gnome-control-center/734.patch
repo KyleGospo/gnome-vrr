@@ -293,11 +293,10 @@ diff --git a/panels/display/cc-display-settings.ui b/panels/display/cc-display-s
 index 6de2ba6ee1..f0c9fa10bc 100644
 --- a/panels/display/cc-display-settings.ui
 +++ b/panels/display/cc-display-settings.ui
-@@ -58,6 +58,21 @@
-             <signal name="notify::selected-item" handler="on_refresh_rate_selection_changed_cb" swapped="yes"/>
+@@ -59,6 +59,21 @@
            </object>
          </child>
-+        <child>
+         <child>
 +          <object class="AdwActionRow" id="variable_refresh_rate_row">
 +            <property name="width_request">100</property>
 +            <property name="title" translatable="yes">Variable Refresh Rate</property>
@@ -312,9 +311,10 @@ index 6de2ba6ee1..f0c9fa10bc 100644
 +            </child>
 +          </object>
 +        </child>
-         <child>
++        <child>
            <object class="AdwActionRow" id="underscanning_row">
              <property name="width_request">100</property>
+             <property name="title" translatable="yes">Adjust for TV</property>
 -- 
 GitLab
 
