@@ -1,19 +1,19 @@
 %define gnome_online_accounts_version 3.25.3
-%define glib2_version 2.70.0
+%define glib2_version 2.75.0
 %define gnome_desktop_version 42~alpha
 %define gsd_version 41.0
 %define gsettings_desktop_schemas_version 42~alpha
 %define upower_version 0.99.8
-%define gtk4_version 4.4
+%define gtk4_version 4.9.3
 %define gnome_bluetooth_version 42~alpha
 %define libadwaita_version 1.2~alpha
 %define nm_version 1.24
 
-%define gnome_version 43.4.1
+%define gnome_version 44.2
 %global tarball_version %%(echo %{gnome_version} | tr '~' '.')
 
 Name:           gnome-control-center
-Version:        %{gnome_version}.vrr.3
+Version:        %{gnome_version}.vrr.4
 Release:        %autorelease
 Summary:        Utilities to configure the GNOME desktop
 
@@ -22,7 +22,7 @@ URL:            https://gitlab.gnome.org/GNOME/gnome-control-center/
 Source0:        https://download.gnome.org/sources/%{name}/43/%{name}-%{tarball_version}.tar.xz
 
 # https://gitlab.gnome.org/doraskayo/gnome-control-center/-/commits/vrr-support-42
-Patch0:         vrr.patch
+Patch0:         734.patch
 
 BuildRequires:  desktop-file-utils
 BuildRequires:  docbook-style-xsl libxslt
@@ -79,7 +79,7 @@ Requires: gsettings-desktop-schemas%{?_isa} >= %{gsettings_desktop_schemas_versi
 Requires: gtk4%{?_isa} >= %{gtk4_version}
 Requires: upower%{?_isa} >= %{upower_version}
 %ifnarch s390 s390x
-Requires: gnome-bluetooth%{?_isa} >= 1:%{gnome_bluetooth_version}
+Recommends: gnome-bluetooth%{?_isa} >= 1:%{gnome_bluetooth_version}
 %endif
 
 Requires: %{name}-filesystem = %{version}-%{release}
@@ -190,7 +190,7 @@ rm -rf $RPM_BUILD_ROOT%{_datadir}/gnome/cursor-fonts
 %{_datadir}/gnome-shell/search-providers/org.gnome.Settings.search-provider.ini
 %{_datadir}/icons/gnome-logo-text*.svg
 %{_datadir}/icons/hicolor/*/*/*
-%{_datadir}/man/man1/gnome-control-center.1*
+%{_mandir}/man1/gnome-control-center.1*
 %{_metainfodir}/org.gnome.Settings.appdata.xml
 %{_datadir}/pixmaps/faces
 %{_datadir}/pkgconfig/gnome-keybindings.pc
@@ -209,3 +209,4 @@ rm -rf $RPM_BUILD_ROOT%{_datadir}/gnome/cursor-fonts
 
 %changelog
 %autochangelog
+
