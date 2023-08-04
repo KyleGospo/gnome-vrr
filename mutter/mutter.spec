@@ -11,7 +11,7 @@
 
 
 %global gnome_major_version 44
-%global gnome_version %{gnome_major_version}.2
+%global gnome_version %{gnome_major_version}.3
 %global tarball_version %%(echo %{gnome_version} | tr '~' '.')
 
 Name:          mutter
@@ -32,10 +32,12 @@ Patch1:        mutter-42.alpha-disable-tegra.patch
 # https://pagure.io/fedora-workstation/issue/79
 Patch2:        0001-place-Always-center-initial-setup-fedora-welcome.patch
 
+# https://gitlab.gnome.org/GNOME/mutter/-/merge_requests/3085
+Patch3:        3085.patch
+
 # https://gitlab.gnome.org/GNOME/mutter/-/merge_requests/1154
-Patch3:        1154.patch
-Patch4:        3080.patch
-Patch5:        3085.patch
+Patch4:        1154.patch
+Patch5:        2909.patch
 Patch6:        enable-vrr-setting.patch
 
 BuildRequires: pkgconfig(gobject-introspection-1.0) >= 1.41.0
