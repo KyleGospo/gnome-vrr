@@ -7,14 +7,15 @@
 %global pipewire_version 0.3.33
 %global lcms2_version 2.6
 %global colord_version 1.4.5
-%global mutter_api_version 12
+%global libei_version 1.0.0
+%global mutter_api_version 13
 
-%global gnome_major_version 44
-%global gnome_version %{gnome_major_version}.3
+%global gnome_major_version 45
+%global gnome_version %{gnome_major_version}.0
 %global tarball_version %%(echo %{gnome_version} | tr '~' '.')
 
 Name:          mutter
-Version:       %{gnome_version}.vrr.17
+Version:       %{gnome_version}.vrr.18
 Release:       1%{?dist}
 Summary:       Window and compositing manager based on Clutter
 
@@ -31,13 +32,9 @@ Patch1:        mutter-42.alpha-disable-tegra.patch
 # https://pagure.io/fedora-workstation/issue/79
 Patch2:        0001-place-Always-center-initial-setup-fedora-welcome.patch
 
-# https://gitlab.gnome.org/GNOME/mutter/-/merge_requests/3085
-Patch3:        3085.patch
-
 # https://gitlab.gnome.org/GNOME/mutter/-/merge_requests/1154
-Patch4:        1154.patch
-Patch5:        2909.patch
-Patch6:        enable-vrr-setting.patch
+Patch3:        vrr.patch
+Patch4:        enable-vrr-setting.patch
 
 BuildRequires: pkgconfig(gobject-introspection-1.0) >= 1.41.0
 BuildRequires: pkgconfig(sm)
@@ -70,11 +67,9 @@ BuildRequires: pkgconfig(libsystemd)
 BuildRequires: xorg-x11-server-Xorg
 BuildRequires: xorg-x11-server-Xvfb
 BuildRequires: pkgconfig(xkeyboard-config)
-# see src/tests/x11-test.sh
-BuildRequires: zenity
 BuildRequires: desktop-file-utils
 # Bootstrap requirements
-BuildRequires: gtk-doc gettext-devel git-core
+BuildRequires: gettext-devel git-core
 BuildRequires: pkgconfig(libcanberra)
 BuildRequires: pkgconfig(gsettings-desktop-schemas) >= %{gsettings_desktop_schemas_version}
 BuildRequires: pkgconfig(gnome-settings-daemon)
@@ -89,6 +84,8 @@ BuildRequires: pkgconfig(wayland-protocols)
 BuildRequires: pkgconfig(wayland-server)
 BuildRequires: pkgconfig(lcms2) >= %{lcms2_version}
 BuildRequires: pkgconfig(colord) >= %{colord_version}
+BuildRequires: pkgconfig(libei-1.0) >= %{libei_version}
+BuildRequires: pkgconfig(libeis-1.0) >= %{libei_version}
 
 BuildRequires: pkgconfig(json-glib-1.0) >= %{json_glib_version}
 BuildRequires: pkgconfig(libinput) >= %{libinput_version}
@@ -97,7 +94,6 @@ BuildRequires: pkgconfig(xwayland)
 Requires: control-center-filesystem
 Requires: gsettings-desktop-schemas%{?_isa} >= %{gsettings_desktop_schemas_version}
 Requires: gnome-settings-daemon
-Requires: gtk3%{?_isa} >= %{gtk3_version}
 Requires: gtk4%{?_isa} >= %{gtk4_version}
 Requires: json-glib%{?_isa} >= %{json_glib_version}
 Requires: libinput%{?_isa} >= %{libinput_version}

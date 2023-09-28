@@ -1,20 +1,23 @@
 %define gnome_online_accounts_version 3.25.3
 %define glib2_version 2.75.0
-%define gnome_desktop_version 42~alpha
+%define gnome_desktop_version 44.0-7
 %define gsd_version 41.0
 %define gsettings_desktop_schemas_version 42~alpha
 %define upower_version 0.99.8
-%define gtk4_version 4.9.3
+%define gtk4_version 4.11.2
 %define gnome_bluetooth_version 42~alpha
-%define libadwaita_version 1.2~alpha
-%define nm_version 1.24
+%define libadwaita_version 1.4~alpha
+%define nm_version 1.24.0
 
-%global gnome_major_version 44
-%global gnome_version %{gnome_major_version}.3
+%global gnome_major_version 45
+%global gnome_version %{gnome_major_version}.0
 %global tarball_version %%(echo %{gnome_version} | tr '~' '.')
 
+# Disable parental control for RHEL builds
+%bcond malcontent %[!0%{?rhel}]
+
 Name:           gnome-control-center
-Version:        %{gnome_version}.vrr.4
+Version:        %{gnome_version}.vrr.5
 Release:        %autorelease
 Summary:        Utilities to configure the GNOME desktop
 
@@ -22,14 +25,17 @@ License:        GPLv2+ and CC-BY-SA
 URL:            https://gitlab.gnome.org/GNOME/gnome-control-center/
 Source0:        https://download.gnome.org/sources/%{name}/%{gnome_major_version}/%{name}-%{tarball_version}.tar.xz
 
+Patch0:         0001-keyboard-Use-new-gnome-desktop-api-for-getting-defau.patch
+
 # https://gitlab.gnome.org/doraskayo/gnome-control-center/-/commits/vrr-support-42
-Patch0:         734.patch
+Patch1:         734.patch
 
 BuildRequires:  desktop-file-utils
 BuildRequires:  docbook-style-xsl libxslt
 BuildRequires:  gcc
 BuildRequires:  gettext
 BuildRequires:  meson
+BuildRequires:  setxkbmap
 BuildRequires:  pkgconfig(accountsservice)
 BuildRequires:  pkgconfig(clutter-gtk-1.0)
 BuildRequires:  pkgconfig(colord)
@@ -56,11 +62,14 @@ BuildRequires:  pkgconfig(libpulse)
 BuildRequires:  pkgconfig(libpulse-mainloop-glib)
 BuildRequires:  pkgconfig(libsecret-1)
 BuildRequires:  pkgconfig(libxml-2.0)
+%if %{with malcontent}
 BuildRequires:  pkgconfig(malcontent-0)
+%endif
 BuildRequires:  pkgconfig(mm-glib)
 BuildRequires:  pkgconfig(polkit-gobject-1)
 BuildRequires:  pkgconfig(pwquality)
 BuildRequires:  pkgconfig(smbclient)
+BuildRequires:  pkgconfig(tecla)
 BuildRequires:  pkgconfig(udisks2)
 BuildRequires:  pkgconfig(upower-glib) >= %{upower_version}
 BuildRequires:  pkgconfig(x11)
@@ -98,9 +107,11 @@ Requires: dbus
 Requires: glx-utils
 # For the user languages
 Requires: iso-codes
+%if %{with malcontent}
 # For parental controls support
 Requires: malcontent
 Recommends: malcontent-control
+%endif
 # For the network panel
 Recommends: NetworkManager-wifi
 Recommends: nm-connection-editor
@@ -114,7 +125,7 @@ Recommends: rygel
 # For the info/details panel
 Recommends: switcheroo-control
 # For the keyboard panel
-Requires: /usr/bin/gkbd-keyboard-display
+Requires: /usr/bin/tecla
 %if 0%{?fedora} >= 35 || 0%{?rhel} >= 9
 # For the power panel
 Recommends: power-profiles-daemon
