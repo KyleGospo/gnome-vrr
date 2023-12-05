@@ -10,7 +10,7 @@
 %define nm_version 1.24.0
 
 %global gnome_major_version 45
-%global gnome_version %{gnome_major_version}.0
+%global gnome_version %{gnome_major_version}.1
 %global tarball_version %%(echo %{gnome_version} | tr '~' '.')
 
 # Disable parental control for RHEL builds
