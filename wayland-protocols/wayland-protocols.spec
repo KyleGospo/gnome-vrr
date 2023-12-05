@@ -1,4 +1,3 @@
-%global _default_patch_fuzz 2
 Name:           wayland-protocols
 %global         wayland_version 1.32
 Version:        %{wayland_version}.vrr.1

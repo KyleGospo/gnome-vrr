@@ -13,6 +13,7 @@
 %global gnome_major_version 45
 %global gnome_version %{gnome_major_version}.2
 %global tarball_version %%(echo %{gnome_version} | tr '~' '.')
+%global _default_patch_fuzz 2
 
 Name:          mutter
 Version:       %{gnome_version}.vrr.20
