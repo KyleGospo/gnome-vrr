@@ -15,7 +15,7 @@
 %global tarball_version %%(echo %{gnome_version} | tr '~' '.')
 
 Name:          mutter
-Version:       %{gnome_version}.vrr.18
+Version:       %{gnome_version}.vrr.19
 Release:       1%{?dist}
 Summary:       Window and compositing manager based on Clutter
 
@@ -35,6 +35,9 @@ Patch2:        0001-place-Always-center-initial-setup-fedora-welcome.patch
 # https://gitlab.gnome.org/GNOME/mutter/-/merge_requests/1154
 Patch3:        vrr.patch
 Patch4:        enable-vrr-setting.patch
+
+# https://gitlab.gnome.org/GNOME/mutter/-/merge_requests/3304
+Patch5:        3304.patch
 
 BuildRequires: pkgconfig(gobject-introspection-1.0) >= 1.41.0
 BuildRequires: pkgconfig(sm)
