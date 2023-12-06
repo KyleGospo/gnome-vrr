@@ -1,4 +1,4 @@
-From 5cc4f3a96119a391017c7f4bd6474516931097e8 Mon Sep 17 00:00:00 2001
+From 439de8fb876118bacde92000dab4e919e1e49a02 Mon Sep 17 00:00:00 2001
 From: Austin Shafer <ashafer@badland.io>
 Date: Tue, 5 Sep 2023 10:46:19 -0400
 Subject: [PATCH 1/6] Pass surface arg to meta_wayland_dma_buf_create_source
@@ -10,7 +10,7 @@ Subject: [PATCH 1/6] Pass surface arg to meta_wayland_dma_buf_create_source
  3 files changed, 8 insertions(+), 2 deletions(-)
 
 diff --git a/src/wayland/meta-wayland-dma-buf.c b/src/wayland/meta-wayland-dma-buf.c
-index a3ec774d0e4..a8a223410c3 100644
+index 79a0f1409..8e9993898 100644
 --- a/src/wayland/meta-wayland-dma-buf.c
 +++ b/src/wayland/meta-wayland-dma-buf.c
 @@ -843,6 +843,7 @@ typedef struct _MetaWaylandDmaBufSource
@@ -38,7 +38,7 @@ index a3ec774d0e4..a8a223410c3 100644
          }
  
 diff --git a/src/wayland/meta-wayland-dma-buf.h b/src/wayland/meta-wayland-dma-buf.h
-index 1c03acb3283..1549374183a 100644
+index 1c03acb32..154937418 100644
 --- a/src/wayland/meta-wayland-dma-buf.h
 +++ b/src/wayland/meta-wayland-dma-buf.h
 @@ -60,6 +60,7 @@ typedef void (*MetaWaylandDmaBufSourceDispatch) (MetaWaylandBuffer *buffer,
@@ -50,10 +50,10 @@ index 1c03acb3283..1549374183a 100644
                                      gpointer                         user_data);
  
 diff --git a/src/wayland/meta-wayland-transaction.c b/src/wayland/meta-wayland-transaction.c
-index 6f1d3cac355..ad24a4c5830 100644
+index 9b999bfa9..0568ba3e0 100644
 --- a/src/wayland/meta-wayland-transaction.c
 +++ b/src/wayland/meta-wayland-transaction.c
-@@ -316,7 +316,8 @@ meta_wayland_transaction_dma_buf_dispatch (MetaWaylandBuffer *buffer,
+@@ -289,7 +289,8 @@ meta_wayland_transaction_dma_buf_dispatch (MetaWaylandBuffer *buffer,
  
  static gboolean
  meta_wayland_transaction_add_dma_buf_source (MetaWaylandTransaction *transaction,
@@ -63,7 +63,7 @@ index 6f1d3cac355..ad24a4c5830 100644
  {
    GSource *source;
  
-@@ -325,6 +326,7 @@ meta_wayland_transaction_add_dma_buf_source (MetaWaylandTransaction *transaction
+@@ -298,6 +299,7 @@ meta_wayland_transaction_add_dma_buf_source (MetaWaylandTransaction *transaction
      return FALSE;
  
    source = meta_wayland_dma_buf_create_source (buffer,
@@ -71,20 +71,20 @@ index 6f1d3cac355..ad24a4c5830 100644
                                                 meta_wayland_transaction_dma_buf_dispatch,
                                                 transaction);
    if (!source)
-@@ -383,7 +385,7 @@ meta_wayland_transaction_commit (MetaWaylandTransaction *transaction)
+@@ -336,7 +338,7 @@ meta_wayland_transaction_commit (MetaWaylandTransaction *transaction)
            MetaWaylandBuffer *buffer = entry->state->buffer;
  
            if (buffer &&
 -              meta_wayland_transaction_add_dma_buf_source (transaction, buffer))
 +              meta_wayland_transaction_add_dma_buf_source (transaction, buffer, surface))
              maybe_apply = FALSE;
- 
-           if (entry->state->subsurface_placement_ops)
+         }
+     }
 -- 
-GitLab
+2.42.0
 
 
-From 40413689ad81412630f35b6e73719ca1835bb85b Mon Sep 17 00:00:00 2001
+From 7f30fc2828779864991cc67d5a21f93c7227cf49 Mon Sep 17 00:00:00 2001
 From: Austin Shafer <ashafer@badland.io>
 Date: Thu, 26 Oct 2023 13:33:34 -0400
 Subject: [PATCH 2/6] cogl: Store latest GPU work completed sync fd
@@ -104,7 +104,7 @@ for use. This is intended for use with linux-drm-syncobj-v1
  8 files changed, 86 insertions(+)
 
 diff --git a/cogl/cogl/cogl-context-private.h b/cogl/cogl/cogl-context-private.h
-index 4c0bc4beab4..015828ffbd3 100644
+index 502dda72b..af45215f2 100644
 --- a/cogl/cogl/cogl-context-private.h
 +++ b/cogl/cogl/cogl-context-private.h
 @@ -257,6 +257,9 @@ struct _CoglContext
@@ -125,10 +125,10 @@ index 4c0bc4beab4..015828ffbd3 100644
 +void
 +_cogl_context_update_sync_fd (CoglContext *context);
 diff --git a/cogl/cogl/cogl-context.c b/cogl/cogl/cogl-context.c
-index fad7b0f67a9..e1f8fabb2f4 100644
+index f7d276825..14ed0a1bd 100644
 --- a/cogl/cogl/cogl-context.c
 +++ b/cogl/cogl/cogl-context.c
-@@ -463,6 +463,20 @@ _cogl_context_set_current_modelview_entry (CoglContext *context,
+@@ -458,6 +458,20 @@ _cogl_context_set_current_modelview_entry (CoglContext *context,
    context->current_modelview_entry = entry;
  }
  
@@ -149,7 +149,7 @@ index fad7b0f67a9..e1f8fabb2f4 100644
  CoglGraphicsResetStatus
  cogl_get_graphics_reset_status (CoglContext *context)
  {
-@@ -536,3 +550,17 @@ cogl_context_get_gpu_time_ns (CoglContext *context)
+@@ -531,3 +545,17 @@ cogl_context_get_gpu_time_ns (CoglContext *context)
  
    return context->driver_vtable->get_gpu_time_ns (context);
  }
@@ -168,10 +168,10 @@ index fad7b0f67a9..e1f8fabb2f4 100644
 +  return -1;
 +}
 diff --git a/cogl/cogl/cogl-context.h b/cogl/cogl/cogl-context.h
-index d36d596e577..41c207b4dd7 100644
+index 8ad691420..847da576a 100644
 --- a/cogl/cogl/cogl-context.h
 +++ b/cogl/cogl/cogl-context.h
-@@ -357,4 +357,18 @@ cogl_context_timestamp_query_get_time_ns (CoglContext        *context,
+@@ -368,4 +368,18 @@ cogl_context_timestamp_query_get_time_ns (CoglContext        *context,
  COGL_EXPORT int64_t
  cogl_context_get_gpu_time_ns (CoglContext *context);
  
@@ -191,10 +191,10 @@ index d36d596e577..41c207b4dd7 100644
 +
  G_END_DECLS
 diff --git a/cogl/cogl/cogl-framebuffer.c b/cogl/cogl/cogl-framebuffer.c
-index 8853d17a901..39a8ed6572f 100644
+index f0499f31a..5f29f8591 100644
 --- a/cogl/cogl/cogl-framebuffer.c
 +++ b/cogl/cogl/cogl-framebuffer.c
-@@ -1699,6 +1699,9 @@ cogl_framebuffer_flush (CoglFramebuffer *framebuffer)
+@@ -1710,6 +1710,9 @@ cogl_framebuffer_flush (CoglFramebuffer *framebuffer)
    CoglFramebufferPrivate *priv =
      cogl_framebuffer_get_instance_private (framebuffer);
  
@@ -205,7 +205,7 @@ index 8853d17a901..39a8ed6572f 100644
  
    cogl_framebuffer_driver_flush (priv->driver);
 diff --git a/cogl/cogl/driver/gl/cogl-util-gl.c b/cogl/cogl/driver/gl/cogl-util-gl.c
-index c22444265d6..ab237e04a1c 100644
+index c22444265..ab237e04a 100644
 --- a/cogl/cogl/driver/gl/cogl-util-gl.c
 +++ b/cogl/cogl/driver/gl/cogl-util-gl.c
 @@ -519,6 +519,9 @@ cogl_gl_create_timestamp_query (CoglContext *context)
@@ -219,7 +219,7 @@ index c22444265d6..ab237e04a1c 100644
     *
     * E.g. the direct scanout path doesn't call SwapBuffers or any other
 diff --git a/cogl/cogl/winsys/cogl-winsys-egl-feature-functions.h b/cogl/cogl/winsys/cogl-winsys-egl-feature-functions.h
-index 494d5ea39f5..78a5903205e 100644
+index 494d5ea39..78a590320 100644
 --- a/cogl/cogl/winsys/cogl-winsys-egl-feature-functions.h
 +++ b/cogl/cogl/winsys/cogl-winsys-egl-feature-functions.h
 @@ -156,6 +156,15 @@ COGL_WINSYS_FEATURE_FUNCTION (EGLBoolean, eglDestroySync,
@@ -239,7 +239,7 @@ index 494d5ea39f5..78a5903205e 100644
  
  COGL_WINSYS_FEATURE_BEGIN (surfaceless_context,
 diff --git a/cogl/cogl/winsys/cogl-winsys-egl.c b/cogl/cogl/winsys/cogl-winsys-egl.c
-index 28aa0a268b9..a6f5b04a3d9 100644
+index 28aa0a268..a6f5b04a3 100644
 --- a/cogl/cogl/winsys/cogl-winsys-egl.c
 +++ b/cogl/cogl/winsys/cogl-winsys-egl.c
 @@ -614,6 +614,25 @@ _cogl_winsys_fence_destroy (CoglContext *context, void *fence)
@@ -277,7 +277,7 @@ index 28aa0a268b9..a6f5b04a3d9 100644
    };
  
 diff --git a/cogl/cogl/winsys/cogl-winsys-private.h b/cogl/cogl/winsys/cogl-winsys-private.h
-index d414cada018..c5a69776a42 100644
+index d414cada0..c5a69776a 100644
 --- a/cogl/cogl/winsys/cogl-winsys-private.h
 +++ b/cogl/cogl/winsys/cogl-winsys-private.h
 @@ -144,6 +144,9 @@ typedef struct _CoglWinsysVtable
@@ -291,10 +291,10 @@ index d414cada018..c5a69776a42 100644
  
  typedef const CoglWinsysVtable *(*CoglWinsysVtableGetter) (void);
 -- 
-GitLab
+2.42.0
 
 
-From ddd3c02a97e3007025f7f9a18c8bd71016b8e42e Mon Sep 17 00:00:00 2001
+From 83c99dc360dae6af3bdf8158a984995b1fd4e74b Mon Sep 17 00:00:00 2001
 From: Austin Shafer <ashafer@badland.io>
 Date: Wed, 6 Sep 2023 13:06:54 -0400
 Subject: [PATCH 3/6] Add MetaDrmTimeline
@@ -312,10 +312,10 @@ a particular sync point.
  create mode 100644 src/wayland/meta-drm-timeline.h
 
 diff --git a/meson.build b/meson.build
-index 02df4302cb2..32e2a4632a5 100644
+index f513c2b55..53e6aca42 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -324,6 +324,8 @@ if have_introspection
+@@ -322,6 +322,8 @@ if have_introspection
    ]
  endif
  
@@ -324,7 +324,7 @@ index 02df4302cb2..32e2a4632a5 100644
  have_documentation = get_option('docs')
  if have_documentation
    gidocgen_dep = dependency('gi-docgen', version: '>= 2021.1',
-@@ -543,6 +545,7 @@ cdata.set('HAVE_STARTUP_NOTIFICATION', have_startup_notification)
+@@ -541,6 +543,7 @@ cdata.set('HAVE_STARTUP_NOTIFICATION', have_startup_notification)
  cdata.set('HAVE_INTROSPECTION', have_introspection)
  cdata.set('HAVE_PROFILER', have_profiler)
  cdata.set('HAVE_LIBDISPLAY_INFO', have_libdisplay_info)
@@ -333,10 +333,10 @@ index 02df4302cb2..32e2a4632a5 100644
  if have_x11_client
    xkb_base = xkeyboard_config_dep.get_variable('xkb_base')
 diff --git a/src/meson.build b/src/meson.build
-index 666400962cf..52cb42ddd16 100644
+index ca2ef166c..87ff43af2 100644
 --- a/src/meson.build
 +++ b/src/meson.build
-@@ -587,6 +587,8 @@ if have_wayland
+@@ -589,6 +589,8 @@ if have_wayland
      'core/meta-service-channel.h',
      'wayland/meta-cursor-sprite-wayland.c',
      'wayland/meta-cursor-sprite-wayland.h',
@@ -347,7 +347,7 @@ index 666400962cf..52cb42ddd16 100644
      'wayland/meta-pointer-lock-wayland.c',
 diff --git a/src/wayland/meta-drm-timeline.c b/src/wayland/meta-drm-timeline.c
 new file mode 100644
-index 00000000000..91bc86330db
+index 000000000..91bc86330
 --- /dev/null
 +++ b/src/wayland/meta-drm-timeline.c
 @@ -0,0 +1,259 @@
@@ -612,7 +612,7 @@ index 00000000000..91bc86330db
 +}
 diff --git a/src/wayland/meta-drm-timeline.h b/src/wayland/meta-drm-timeline.h
 new file mode 100644
-index 00000000000..bbe85b47ab5
+index 000000000..bbe85b47a
 --- /dev/null
 +++ b/src/wayland/meta-drm-timeline.h
 @@ -0,0 +1,49 @@
@@ -666,10 +666,10 @@ index 00000000000..bbe85b47ab5
 +                                      int              sync_fd,
 +                                      GError         **error);
 -- 
-GitLab
+2.42.0
 
 
-From 68474ca3749fabfb47520c39766300f91ddf20d2 Mon Sep 17 00:00:00 2001
+From 704e34c5244ea6dd98188ccab0ac2e6d11b791d9 Mon Sep 17 00:00:00 2001
 From: Austin Shafer <ashafer@badland.io>
 Date: Thu, 7 Sep 2023 10:32:21 -0400
 Subject: [PATCH 4/6] Add linux-drm-syncobj v1 to build
@@ -679,10 +679,10 @@ Subject: [PATCH 4/6] Add linux-drm-syncobj v1 to build
  1 file changed, 1 insertion(+)
 
 diff --git a/src/meson.build b/src/meson.build
-index 52cb42ddd16..b0b29de552e 100644
+index 87ff43af2..d9c86cf38 100644
 --- a/src/meson.build
 +++ b/src/meson.build
-@@ -1080,6 +1080,7 @@ if have_wayland
+@@ -1082,6 +1082,7 @@ if have_wayland
      ['xdg-output', 'unstable', 'v1', ],
      ['xdg-shell', 'stable', ],
      ['xwayland-keyboard-grab', 'unstable', 'v1', ],
@@ -691,10 +691,10 @@ index 52cb42ddd16..b0b29de552e 100644
    if have_wayland_eglstream
      wayland_eglstream_protocols_dir = wayland_eglstream_protocols_dep.get_variable('pkgdatadir')
 -- 
-GitLab
+2.42.0
 
 
-From e62e3693ee6aa3bd620310e23d5f521104af407a Mon Sep 17 00:00:00 2001
+From 1a78a57dd4e39f3af0dc2dbab10ade02970698a6 Mon Sep 17 00:00:00 2001
 From: Austin Shafer <ashafer@badland.io>
 Date: Fri, 8 Sep 2023 16:40:56 -0400
 Subject: [PATCH 5/6] Implement linux-drm-syncobj-v1
@@ -705,8 +705,8 @@ Subject: [PATCH 5/6] Implement linux-drm-syncobj-v1
  src/wayland/meta-wayland-buffer.h            |   2 +
  src/wayland/meta-wayland-linux-drm-syncobj.c | 413 +++++++++++++++++++
  src/wayland/meta-wayland-linux-drm-syncobj.h |  62 +++
- src/wayland/meta-wayland-surface-private.h   |  19 +
  src/wayland/meta-wayland-surface.c           |  49 +++
+ src/wayland/meta-wayland-surface.h           |  19 +
  src/wayland/meta-wayland-types.h             |   3 +
  src/wayland/meta-wayland.c                   |   2 +
  9 files changed, 582 insertions(+), 1 deletion(-)
@@ -714,10 +714,10 @@ Subject: [PATCH 5/6] Implement linux-drm-syncobj-v1
  create mode 100644 src/wayland/meta-wayland-linux-drm-syncobj.h
 
 diff --git a/src/meson.build b/src/meson.build
-index b0b29de552e..5be5ab11615 100644
+index d9c86cf38..1869c2b1d 100644
 --- a/src/meson.build
 +++ b/src/meson.build
-@@ -641,6 +641,8 @@ if have_wayland
+@@ -643,6 +643,8 @@ if have_wayland
      'wayland/meta-wayland-keyboard.h',
      'wayland/meta-wayland-legacy-xdg-foreign.c',
      'wayland/meta-wayland-legacy-xdg-foreign.h',
@@ -727,7 +727,7 @@ index b0b29de552e..5be5ab11615 100644
      'wayland/meta-wayland-outputs.h',
      'wayland/meta-wayland-pointer.c',
 diff --git a/src/wayland/meta-wayland-buffer.c b/src/wayland/meta-wayland-buffer.c
-index e30e35a677b..9f2e0e7ab8c 100644
+index 7a9858010..1006c0a47 100644
 --- a/src/wayland/meta-wayland-buffer.c
 +++ b/src/wayland/meta-wayland-buffer.c
 @@ -56,6 +56,8 @@
@@ -739,7 +739,7 @@ index e30e35a677b..9f2e0e7ab8c 100644
  
  #ifdef HAVE_NATIVE_BACKEND
  #include "backends/native/meta-drm-buffer-gbm.h"
-@@ -658,12 +660,36 @@ meta_wayland_buffer_inc_use_count (MetaWaylandBuffer *buffer)
+@@ -661,12 +663,36 @@ meta_wayland_buffer_inc_use_count (MetaWaylandBuffer *buffer)
  void
  meta_wayland_buffer_dec_use_count (MetaWaylandBuffer *buffer)
  {
@@ -777,7 +777,7 @@ index e30e35a677b..9f2e0e7ab8c 100644
  }
  
  gboolean
-@@ -872,6 +898,7 @@ meta_wayland_buffer_finalize (GObject *object)
+@@ -875,6 +901,7 @@ meta_wayland_buffer_finalize (GObject *object)
  
    clear_tainted_scanout_onscreens (buffer);
    g_clear_pointer (&buffer->tainted_scanout_onscreens, g_hash_table_unref);
@@ -785,7 +785,7 @@ index e30e35a677b..9f2e0e7ab8c 100644
  
    g_clear_object (&buffer->egl_image.texture);
  #ifdef HAVE_WAYLAND_EGLSTREAM
-@@ -890,6 +917,8 @@ meta_wayland_buffer_finalize (GObject *object)
+@@ -893,6 +920,8 @@ meta_wayland_buffer_finalize (GObject *object)
  static void
  meta_wayland_buffer_init (MetaWaylandBuffer *buffer)
  {
@@ -795,10 +795,10 @@ index e30e35a677b..9f2e0e7ab8c 100644
  
  static void
 diff --git a/src/wayland/meta-wayland-buffer.h b/src/wayland/meta-wayland-buffer.h
-index 70a58d62277..8723d1eb2e2 100644
+index 2b50c2539..8505213ed 100644
 --- a/src/wayland/meta-wayland-buffer.h
 +++ b/src/wayland/meta-wayland-buffer.h
-@@ -79,6 +79,8 @@ struct _MetaWaylandBuffer
+@@ -80,6 +80,8 @@ struct _MetaWaylandBuffer
    } single_pixel;
  
    GHashTable *tainted_scanout_onscreens;
@@ -809,7 +809,7 @@ index 70a58d62277..8723d1eb2e2 100644
  #define META_TYPE_WAYLAND_BUFFER (meta_wayland_buffer_get_type ())
 diff --git a/src/wayland/meta-wayland-linux-drm-syncobj.c b/src/wayland/meta-wayland-linux-drm-syncobj.c
 new file mode 100644
-index 00000000000..8ac51068020
+index 000000000..8ac510680
 --- /dev/null
 +++ b/src/wayland/meta-wayland-linux-drm-syncobj.c
 @@ -0,0 +1,413 @@
@@ -1228,7 +1228,7 @@ index 00000000000..8ac51068020
 +}
 diff --git a/src/wayland/meta-wayland-linux-drm-syncobj.h b/src/wayland/meta-wayland-linux-drm-syncobj.h
 new file mode 100644
-index 00000000000..df21f1f02d7
+index 000000000..df21f1f02
 --- /dev/null
 +++ b/src/wayland/meta-wayland-linux-drm-syncobj.h
 @@ -0,0 +1,62 @@
@@ -1294,52 +1294,8 @@ index 00000000000..df21f1f02d7
 +                                        uint64_t                               sync_point,
 +                                        MetaWaylandDrmSyncobjSourceDispatch  dispatch,
 +                                        gpointer                               user_data);
-diff --git a/src/wayland/meta-wayland-surface-private.h b/src/wayland/meta-wayland-surface-private.h
-index 8b485cac8c1..7cca10c6f22 100644
---- a/src/wayland/meta-wayland-surface-private.h
-+++ b/src/wayland/meta-wayland-surface-private.h
-@@ -40,6 +40,12 @@ G_DECLARE_FINAL_TYPE (MetaWaylandSurfaceState,
-                       META, WAYLAND_SURFACE_STATE,
-                       GObject)
- 
-+#define META_TYPE_WAYLAND_SYNC_POINT (meta_wayland_sync_point_get_type ())
-+G_DECLARE_FINAL_TYPE (MetaWaylandSyncPoint,
-+                      meta_wayland_sync_point,
-+                      META, WAYLAND_SYNC_POINT,
-+                      GObject)
-+
- struct _MetaWaylandSurfaceRoleClass
- {
-   GObjectClass parent_class;
-@@ -67,6 +73,13 @@ struct _MetaWaylandSurfaceRoleClass
-   MetaWindow * (*get_window) (MetaWaylandSurfaceRole *surface_role);
- };
- 
-+typedef struct _MetaWaylandSyncPoint {
-+  GObject parent;
-+
-+  MetaWaylandSyncobjTimeline *timeline;
-+  uint64_t sync_point;
-+} MetaWaylandSyncPoint;
-+
- struct _MetaWaylandSurfaceState
- {
-   GObject parent;
-@@ -128,6 +141,12 @@ struct _MetaWaylandSurfaceState
-   /* xdg_popup */
-   MetaWaylandXdgPositioner *xdg_positioner;
-   uint32_t xdg_popup_reposition_token;
-+
-+  /* Explicit Synchronization */
-+  struct {
-+    MetaWaylandSyncPoint *acquire;
-+    MetaWaylandSyncPoint *release;
-+  } drm_syncobj;
- };
- 
- struct _MetaWaylandDragDestFuncs
 diff --git a/src/wayland/meta-wayland-surface.c b/src/wayland/meta-wayland-surface.c
-index e3d405ea7e2..ffb40f86029 100644
+index d42f31828..7d99cc8c5 100644
 --- a/src/wayland/meta-wayland-surface.c
 +++ b/src/wayland/meta-wayland-surface.c
 @@ -99,6 +99,8 @@ G_DEFINE_TYPE (MetaWaylandSurfaceState,
@@ -1351,7 +1307,7 @@ index e3d405ea7e2..ffb40f86029 100644
  enum
  {
    SURFACE_DESTROY,
-@@ -417,6 +419,9 @@ meta_wayland_surface_state_set_default (MetaWaylandSurfaceState *state)
+@@ -421,6 +423,9 @@ meta_wayland_surface_state_set_default (MetaWaylandSurfaceState *state)
    wl_list_init (&state->presentation_feedback_list);
  
    state->xdg_popup_reposition_token = 0;
@@ -1361,16 +1317,16 @@ index e3d405ea7e2..ffb40f86029 100644
  }
  
  static void
-@@ -443,6 +448,8 @@ meta_wayland_surface_state_clear (MetaWaylandSurfaceState *state)
-   g_clear_pointer (&state->input_region, mtk_region_unref);
-   g_clear_pointer (&state->opaque_region, mtk_region_unref);
+@@ -447,6 +452,8 @@ meta_wayland_surface_state_clear (MetaWaylandSurfaceState *state)
+   g_clear_pointer (&state->input_region, cairo_region_destroy);
+   g_clear_pointer (&state->opaque_region, cairo_region_destroy);
    g_clear_pointer (&state->xdg_positioner, g_free);
 +  g_clear_object (&state->drm_syncobj.acquire);
 +  g_clear_object (&state->drm_syncobj.release);
  
    if (state->buffer_destroy_handler_id)
      {
-@@ -601,6 +608,20 @@ meta_wayland_surface_state_merge_into (MetaWaylandSurfaceState *from,
+@@ -605,6 +612,20 @@ meta_wayland_surface_state_merge_into (MetaWaylandSurfaceState *from,
        to->xdg_positioner = g_steal_pointer (&from->xdg_positioner);
        to->xdg_popup_reposition_token = from->xdg_popup_reposition_token;
      }
@@ -1391,7 +1347,7 @@ index e3d405ea7e2..ffb40f86029 100644
  }
  
  static void
-@@ -635,6 +656,30 @@ meta_wayland_surface_state_class_init (MetaWaylandSurfaceStateClass *klass)
+@@ -639,6 +660,30 @@ meta_wayland_surface_state_class_init (MetaWaylandSurfaceStateClass *klass)
                    G_TYPE_NONE, 0);
  }
  
@@ -1422,7 +1378,7 @@ index e3d405ea7e2..ffb40f86029 100644
  static void
  meta_wayland_surface_discard_presentation_feedback (MetaWaylandSurface *surface)
  {
-@@ -914,6 +959,7 @@ meta_wayland_surface_commit (MetaWaylandSurface *surface)
+@@ -924,6 +969,7 @@ meta_wayland_surface_commit (MetaWaylandSurface *surface)
    MetaWaylandBuffer *buffer = pending->buffer;
    MetaWaylandTransaction *transaction;
    MetaWaylandSurface *subsurface_surface;
@@ -1430,7 +1386,7 @@ index e3d405ea7e2..ffb40f86029 100644
  
    COGL_TRACE_BEGIN_SCOPED (MetaWaylandSurfaceCommit,
                             "WaylandSurface (commit)");
-@@ -943,6 +989,9 @@ meta_wayland_surface_commit (MetaWaylandSurface *surface)
+@@ -953,6 +999,9 @@ meta_wayland_surface_commit (MetaWaylandSurface *surface)
  
        pending->texture = g_object_ref (surface->protocol_state.texture);
  
@@ -1440,8 +1396,52 @@ index e3d405ea7e2..ffb40f86029 100644
        g_object_ref (buffer);
        meta_wayland_buffer_inc_use_count (buffer);
      }
+diff --git a/src/wayland/meta-wayland-surface.h b/src/wayland/meta-wayland-surface.h
+index 3e8db5a87..c5803f80c 100644
+--- a/src/wayland/meta-wayland-surface.h
++++ b/src/wayland/meta-wayland-surface.h
+@@ -46,6 +46,12 @@ G_DECLARE_FINAL_TYPE (MetaWaylandSurfaceState,
+                       META, WAYLAND_SURFACE_STATE,
+                       GObject)
+ 
++#define META_TYPE_WAYLAND_SYNC_POINT (meta_wayland_sync_point_get_type ())
++G_DECLARE_FINAL_TYPE (MetaWaylandSyncPoint,
++                      meta_wayland_sync_point,
++                      META, WAYLAND_SYNC_POINT,
++                      GObject)
++
+ struct _MetaWaylandSurfaceRoleClass
+ {
+   GObjectClass parent_class;
+@@ -73,6 +79,13 @@ struct _MetaWaylandSurfaceRoleClass
+   MetaWindow * (*get_window) (MetaWaylandSurfaceRole *surface_role);
+ };
+ 
++typedef struct _MetaWaylandSyncPoint {
++  GObject parent;
++
++  MetaWaylandSyncobjTimeline *timeline;
++  uint64_t sync_point;
++} MetaWaylandSyncPoint;
++
+ struct _MetaWaylandSurfaceState
+ {
+   GObject parent;
+@@ -134,6 +147,12 @@ struct _MetaWaylandSurfaceState
+   /* xdg_popup */
+   MetaWaylandXdgPositioner *xdg_positioner;
+   uint32_t xdg_popup_reposition_token;
++
++  /* Explicit Synchronization */
++  struct {
++    MetaWaylandSyncPoint *acquire;
++    MetaWaylandSyncPoint *release;
++  } drm_syncobj;
+ };
+ 
+ struct _MetaWaylandDragDestFuncs
 diff --git a/src/wayland/meta-wayland-types.h b/src/wayland/meta-wayland-types.h
-index c14b340f4e8..c6f85508d83 100644
+index c14b340f4..c6f85508d 100644
 --- a/src/wayland/meta-wayland-types.h
 +++ b/src/wayland/meta-wayland-types.h
 @@ -64,6 +64,9 @@ typedef struct _MetaWaylandActivation MetaWaylandActivation;
@@ -1455,7 +1455,7 @@ index c14b340f4e8..c6f85508d83 100644
  
  typedef struct _MetaXWaylandManager MetaXWaylandManager;
 diff --git a/src/wayland/meta-wayland.c b/src/wayland/meta-wayland.c
-index a2bd7d2abde..a3569af53cc 100644
+index a2bd7d2ab..a3569af53 100644
 --- a/src/wayland/meta-wayland.c
 +++ b/src/wayland/meta-wayland.c
 @@ -50,6 +50,7 @@
@@ -1475,25 +1475,25 @@ index a2bd7d2abde..a3569af53cc 100644
  #ifdef HAVE_WAYLAND_EGLSTREAM
    {
 -- 
-GitLab
+2.42.0
 
 
-From 9d3731a089147475e6297f41a699d959e2f0c68e Mon Sep 17 00:00:00 2001
+From 1e8db82ff57716397f93163b2c0f3821b3ee2f1d Mon Sep 17 00:00:00 2001
 From: Austin Shafer <ashafer@badland.io>
 Date: Tue, 12 Sep 2023 17:30:19 -0400
 Subject: [PATCH 6/6] wayland-transaction: Check for explicit sync acquire
  fences
 
 ---
- src/wayland/meta-wayland-dma-buf.c           | 168 -----------
+ src/wayland/meta-wayland-dma-buf.c           | 168 ----------
  src/wayland/meta-wayland-dma-buf.h           |  27 +-
  src/wayland/meta-wayland-linux-drm-syncobj.h |  10 -
- src/wayland/meta-wayland-transaction.c       | 278 ++++++++++++++++++-
+ src/wayland/meta-wayland-transaction.c       | 312 +++++++++++++++++--
  src/wayland/meta-wayland-transaction.h       |   3 +
- 5 files changed, 293 insertions(+), 193 deletions(-)
+ 5 files changed, 310 insertions(+), 210 deletions(-)
 
 diff --git a/src/wayland/meta-wayland-dma-buf.c b/src/wayland/meta-wayland-dma-buf.c
-index a8a223410c3..cfee94a99b6 100644
+index 8e9993898..a99d583e9 100644
 --- a/src/wayland/meta-wayland-dma-buf.c
 +++ b/src/wayland/meta-wayland-dma-buf.c
 @@ -65,8 +65,6 @@
@@ -1686,7 +1686,7 @@ index a8a223410c3..cfee94a99b6 100644
  buffer_params_create_common (struct wl_client   *client,
                               struct wl_resource *params_resource,
 diff --git a/src/wayland/meta-wayland-dma-buf.h b/src/wayland/meta-wayland-dma-buf.h
-index 1549374183a..1bce4894cc5 100644
+index 154937418..1bce4894c 100644
 --- a/src/wayland/meta-wayland-dma-buf.h
 +++ b/src/wayland/meta-wayland-dma-buf.h
 @@ -31,6 +31,8 @@
@@ -1738,7 +1738,7 @@ index 1549374183a..1bce4894cc5 100644
  meta_wayland_dma_buf_try_acquire_scanout (MetaWaylandDmaBufBuffer *dma_buf,
                                            CoglOnscreen            *onscreen);
 diff --git a/src/wayland/meta-wayland-linux-drm-syncobj.h b/src/wayland/meta-wayland-linux-drm-syncobj.h
-index df21f1f02d7..7c18f0f3cc7 100644
+index df21f1f02..7c18f0f3c 100644
 --- a/src/wayland/meta-wayland-linux-drm-syncobj.h
 +++ b/src/wayland/meta-wayland-linux-drm-syncobj.h
 @@ -49,14 +49,4 @@ typedef struct _MetaWaylandSyncobjTimeline
@@ -1757,7 +1757,7 @@ index df21f1f02d7..7c18f0f3cc7 100644
 -                                        MetaWaylandDrmSyncobjSourceDispatch  dispatch,
 -                                        gpointer                               user_data);
 diff --git a/src/wayland/meta-wayland-transaction.c b/src/wayland/meta-wayland-transaction.c
-index ad24a4c5830..e8f0daa4609 100644
+index 0568ba3e0..ac864ac7c 100644
 --- a/src/wayland/meta-wayland-transaction.c
 +++ b/src/wayland/meta-wayland-transaction.c
 @@ -26,9 +26,16 @@
@@ -1909,7 +1909,7 @@ index ad24a4c5830..e8f0daa4609 100644
  static MetaWaylandTransactionEntry *
  meta_wayland_transaction_get_entry (MetaWaylandTransaction *transaction,
                                      MetaWaylandSurface     *surface)
-@@ -302,8 +434,8 @@ meta_wayland_transaction_maybe_apply (MetaWaylandTransaction *transaction)
+@@ -275,8 +407,8 @@ meta_wayland_transaction_maybe_apply (MetaWaylandTransaction *transaction)
  }
  
  static void
@@ -1920,7 +1920,7 @@ index ad24a4c5830..e8f0daa4609 100644
  {
    MetaWaylandTransaction *transaction = user_data;
  
-@@ -314,6 +446,100 @@ meta_wayland_transaction_dma_buf_dispatch (MetaWaylandBuffer *buffer,
+@@ -287,6 +419,100 @@ meta_wayland_transaction_dma_buf_dispatch (MetaWaylandBuffer *buffer,
    meta_wayland_transaction_maybe_apply (transaction);
  }
  
@@ -2021,7 +2021,7 @@ index ad24a4c5830..e8f0daa4609 100644
  static gboolean
  meta_wayland_transaction_add_dma_buf_source (MetaWaylandTransaction *transaction,
                                               MetaWaylandBuffer      *buffer,
-@@ -327,7 +553,7 @@ meta_wayland_transaction_add_dma_buf_source (MetaWaylandTransaction *transaction
+@@ -300,7 +526,7 @@ meta_wayland_transaction_add_dma_buf_source (MetaWaylandTransaction *transaction
  
    source = meta_wayland_dma_buf_create_source (buffer,
                                                 surface,
@@ -2030,7 +2030,7 @@ index ad24a4c5830..e8f0daa4609 100644
                                                 transaction);
    if (!source)
      return FALSE;
-@@ -346,6 +572,46 @@ meta_wayland_transaction_add_dma_buf_source (MetaWaylandTransaction *transaction
+@@ -319,6 +545,63 @@ meta_wayland_transaction_add_dma_buf_source (MetaWaylandTransaction *transaction
    return TRUE;
  }
  
@@ -2074,10 +2074,27 @@ index ad24a4c5830..e8f0daa4609 100644
 +  return TRUE;
 +}
 +
- static void
- meta_wayland_transaction_add_placement_surfaces (MetaWaylandTransaction  *transaction,
-                                                  MetaWaylandSurfaceState *state)
-@@ -384,8 +650,10 @@ meta_wayland_transaction_commit (MetaWaylandTransaction *transaction)
++static void
++meta_wayland_transaction_add_placement_surfaces (MetaWaylandTransaction  *transaction,
++                                                 MetaWaylandSurfaceState *state)
++{
++  GSList *l;
++
++  for (l = state->subsurface_placement_ops; l; l = l->next)
++    {
++      MetaWaylandSubsurfacePlacementOp *op = l->data;
++
++      meta_wayland_transaction_ensure_entry (transaction, op->surface);
++
++      if (op->sibling)
++        meta_wayland_transaction_ensure_entry (transaction, op->sibling);
++    }
++}
++
+ void
+ meta_wayland_transaction_commit (MetaWaylandTransaction *transaction)
+ {
+@@ -337,8 +620,10 @@ meta_wayland_transaction_commit (MetaWaylandTransaction *transaction)
          {
            MetaWaylandBuffer *buffer = entry->state->buffer;
  
@@ -2088,13 +2105,37 @@ index ad24a4c5830..e8f0daa4609 100644
 +               || (buffer &&
 +                   meta_wayland_transaction_add_dma_buf_source (transaction, buffer, surface)))
              maybe_apply = FALSE;
+         }
+     }
+@@ -404,23 +689,6 @@ meta_wayland_transaction_entry_free (MetaWaylandTransactionEntry *entry)
+   g_free (entry);
+ }
  
-           if (entry->state->subsurface_placement_ops)
+-static void
+-meta_wayland_transaction_add_placement_surfaces (MetaWaylandTransaction  *transaction,
+-                                                 MetaWaylandSurfaceState *state)
+-{
+-  GSList *l;
+-
+-  for (l = state->subsurface_placement_ops; l; l = l->next)
+-    {
+-      MetaWaylandSubsurfacePlacementOp *op = l->data;
+-
+-      meta_wayland_transaction_ensure_entry (transaction, op->surface);
+-
+-      if (op->sibling)
+-        meta_wayland_transaction_ensure_entry (transaction, op->sibling);
+-    }
+-}
+-
+ static void
+ meta_wayland_transaction_add_entry (MetaWaylandTransaction      *transaction,
+                                     MetaWaylandSurface          *surface,
 diff --git a/src/wayland/meta-wayland-transaction.h b/src/wayland/meta-wayland-transaction.h
-index 165fe7f66ff..9c4834e8d1c 100644
+index 6674d2c2c..28a5692e1 100644
 --- a/src/wayland/meta-wayland-transaction.h
 +++ b/src/wayland/meta-wayland-transaction.h
-@@ -55,3 +55,6 @@ void meta_wayland_transaction_free (MetaWaylandTransaction *transaction);
+@@ -52,3 +52,6 @@ void meta_wayland_transaction_free (MetaWaylandTransaction *transaction);
  void meta_wayland_transaction_finalize (MetaWaylandCompositor *compositor);
  
  void meta_wayland_transaction_init (MetaWaylandCompositor *compositor);
@@ -2102,5 +2143,5 @@ index 165fe7f66ff..9c4834e8d1c 100644
 +typedef void (*MetaWaylandDrmSourceDispatch) (MetaWaylandBuffer *buffer,
 +                                              gpointer           user_data);
 -- 
-GitLab
+2.42.0
 
