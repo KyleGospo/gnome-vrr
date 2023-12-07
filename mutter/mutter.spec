@@ -16,7 +16,7 @@
 %global _default_patch_fuzz 2
 
 Name:          mutter
-Version:       %{gnome_version}.vrr.20
+Version:       %{gnome_version}.vrr.21
 Release:       1%{?dist}
 Summary:       Window and compositing manager based on Clutter
 
@@ -34,14 +34,14 @@ Patch1:        mutter-42.alpha-disable-tegra.patch
 Patch2:        0001-place-Always-center-initial-setup-fedora-welcome.patch
 
 # https://gitlab.gnome.org/GNOME/mutter/-/merge_requests/3300/
-Patch3:        3300.patch
+# Patch3:        3300.patch
 
 # https://gitlab.gnome.org/GNOME/mutter/-/merge_requests/1154
 Patch4:        vrr.patch
 Patch5:        enable-vrr-setting.patch
 
 # https://gitlab.gnome.org/GNOME/mutter/-/merge_requests/3304
-Patch6:        3304.patch
+# Patch6:        3304.patch
 
 BuildRequires: pkgconfig(gobject-introspection-1.0) >= 1.41.0
 BuildRequires: pkgconfig(sm)
